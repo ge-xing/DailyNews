@@ -210,7 +210,7 @@ export default async function Home({ searchParams }: HomeProps) {
               ) : (
                 <section className="empty-card">
                   <p>当前没有可展示的 Github 趋势数据。</p>
-                  <p>请确认 `trending_api.txt` 可用，然后刷新本页。</p>
+                  <p>请确认已配置 `SEARCH1_API_KEY`（或本地 `trending_api.txt`），然后刷新本页。</p>
                 </section>
               )}
             </>

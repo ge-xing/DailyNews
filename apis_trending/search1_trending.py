@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -8,6 +9,7 @@ import requests
 
 DEFAULT_API_BASE = "https://api.302.ai"
 DEFAULT_API_KEY_PATH = "trending_api.txt"
+DEFAULT_API_KEY_ENV_VARS = ("SEARCH1_API_KEY", "TRENDING_API_KEY")
 DEFAULT_SEARCH_SERVICE = "github"
 DEFAULT_MAX_RESULTS = 10
 DEFAULT_TIMEOUT = 30
@@ -21,6 +23,11 @@ python3 -m apis_trending.search1_trending --search-service github --max-results 
 
 
 def _load_api_key(path: str) -> str:
+    for env_name in DEFAULT_API_KEY_ENV_VARS:
+        value = os.getenv(env_name, "").strip()
+        if value:
+            return value
+
     key_path = Path(path)
     if not key_path.exists():
         return ""
@@ -58,7 +65,10 @@ def fetch_trending(
 ) -> Dict[str, Any]:
     api_key = _load_api_key(api_key_path)
     if not api_key:
-        raise ValueError(f"Missing API key. Set {api_key_path} or pass --api-key-path.")
+        raise ValueError(
+            f"Missing API key. Set {DEFAULT_API_KEY_ENV_VARS[0]}/{DEFAULT_API_KEY_ENV_VARS[1]} "
+            f"or pass --api-key-path."
+        )
 
     url = base_url.rstrip("/") + "/search1api/trending"
     headers = {
@@ -107,7 +117,10 @@ def main() -> None:
         "--api-key-path",
         type=str,
         default=DEFAULT_API_KEY_PATH,
-        help="API key file path (default trending_api.txt).",
+        help=(
+            "API key file path fallback (default trending_api.txt). "
+            "Env first: SEARCH1_API_KEY / TRENDING_API_KEY."
+        ),
     )
     parser.add_argument("--base-url", type=str, default=DEFAULT_API_BASE, help="API base URL.")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Request timeout seconds.")

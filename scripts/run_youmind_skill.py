@@ -85,7 +85,12 @@ def parse_args() -> argparse.Namespace:
         description="Fetch feed items from Karpathy gist and generate daily report with Gemini."
     )
     parser.add_argument("--prompt-file", type=Path, default=default_prompt)
-    parser.add_argument("--api-key-file", type=Path, default=default_api_key)
+    parser.add_argument(
+        "--api-key-file",
+        type=Path,
+        default=default_api_key,
+        help="Gemini API key file fallback. Env first: GEMINI_API_KEY / GOOGLE_API_KEY.",
+    )
     parser.add_argument("--gist-url", default=DEFAULT_GIST_URL)
     parser.add_argument(
         "--date",
@@ -966,7 +971,10 @@ def main() -> int:
         log_stage(f"正在调用 Gemini 生成日报（模型: {args.model}）")
         config = AIConfig(api_key_path=str(args.api_key_file))
         if not config.has_api_key:
-            raise RuntimeError(f"Gemini API key not found in {args.api_key_file}")
+            raise RuntimeError(
+                "Gemini API key not found. Set GEMINI_API_KEY/GOOGLE_API_KEY "
+                f"or provide --api-key-file ({args.api_key_file})."
+            )
         gemini = GeminiAPI(config)
         response = gemini.generate_content(contents=full_prompt, model=args.model)
         report = response_to_text(response)

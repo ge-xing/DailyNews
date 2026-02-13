@@ -12,6 +12,7 @@ api_key*
 trending_api*
 env.py
 run.sh
+env.sh
 # Distribution / packaging
 node_modules
 .Python

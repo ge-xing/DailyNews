@@ -24,12 +24,22 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch GitHub trending from Search1API.")
     parser.add_argument("--max-results", type=int, default=20)
-    parser.add_argument("--api-key-path", type=str, default="trending_api.txt")
+    parser.add_argument(
+        "--api-key-path",
+        type=str,
+        default="trending_api.txt",
+        help="Search1 key file fallback. Env first: SEARCH1_API_KEY / TRENDING_API_KEY.",
+    )
     parser.add_argument("--base-url", type=str, default="https://api.302.ai")
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--translate", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL)
-    parser.add_argument("--gemini-api-key-path", type=str, default="api_key.text")
+    parser.add_argument(
+        "--gemini-api-key-path",
+        type=str,
+        default="api_key.text",
+        help="Gemini key file fallback. Env first: GEMINI_API_KEY / GOOGLE_API_KEY.",
+    )
     parser.add_argument("--vertex-path", type=str, default="vertex_1.json")
     return parser.parse_args()
 
@@ -112,7 +122,10 @@ def translate_descriptions(
 
     config = AIConfig(api_key_path=gemini_api_key_path, vertex_path=vertex_path)
     if not config.has_api_key:
-        raise RuntimeError(f"Missing Gemini API key: {gemini_api_key_path}")
+        raise RuntimeError(
+            "Missing Gemini API key. Set GEMINI_API_KEY/GOOGLE_API_KEY "
+            f"or provide --gemini-api-key-path ({gemini_api_key_path})."
+        )
 
     api = GeminiAPI(config)
     prompt = (
@@ -133,14 +146,10 @@ def translate_descriptions(
 
 def main() -> int:
     args = parse_args()
-    api_key_path = Path(args.api_key_path)
-    if not api_key_path.exists():
-        raise RuntimeError(f"API key file not found: {api_key_path}")
-
     payload = fetch_trending(
         search_service="github",
         max_results=args.max_results,
-        api_key_path=str(api_key_path),
+        api_key_path=str(Path(args.api_key_path)),
         base_url=args.base_url,
         timeout=args.timeout,
     )

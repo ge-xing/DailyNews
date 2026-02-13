@@ -8,6 +8,9 @@ from typing import Optional
 from google import genai
 from .errors import ConfigError
 
+GEMINI_API_KEY_ENV_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+
 class AIConfig:
     """Unified AI configuration management class, zero duplicate configuration"""
     
@@ -45,8 +48,19 @@ class AIConfig:
             self._key_client = genai.Client(api_key=self.api_key)
         return self._key_client
 
+    def _load_api_key_from_env(self) -> Optional[str]:
+        for env_name in GEMINI_API_KEY_ENV_VARS:
+            value = os.getenv(env_name, "").strip()
+            if value:
+                return value
+        return None
+
     def _load_api_key(self, api_key_path: str) -> Optional[str]:
-        """Safely load API key"""
+        """Safely load API key. Prefer env vars, then fallback to local file."""
+        env_key = self._load_api_key_from_env()
+        if env_key:
+            return env_key
+
         try:
             if not os.path.exists(api_key_path):
                 return None

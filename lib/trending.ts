@@ -148,8 +148,6 @@ function runFetcher(maxResults: number): Promise<string> {
         scriptPath,
         "--max-results",
         String(Math.max(1, Math.min(50, maxResults))),
-        "--api-key-path",
-        path.join(cwd, "trending_api.txt"),
       ],
       {
         cwd,

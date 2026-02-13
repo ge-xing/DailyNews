@@ -152,7 +152,12 @@ def main() -> None:
     parser.add_argument("--output-dir", type=str, default=DEFAULT_OUTPUT_DIR, help="Output directory.")
     parser.add_argument("--date", type=str, default="", help="Date string for filename (YYYY-MM-DD).")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL, help="Gemini model name.")
-    parser.add_argument("--api-key-path", type=str, default="api_key.text", help="Gemini API key file.")
+    parser.add_argument(
+        "--api-key-path",
+        type=str,
+        default="api_key.text",
+        help="Gemini API key file fallback. Env first: GEMINI_API_KEY / GOOGLE_API_KEY.",
+    )
     parser.add_argument("--vertex-path", type=str, default="vertex_1.json", help="Vertex credentials path.")
     args = parser.parse_args()
 
@@ -178,7 +183,9 @@ def main() -> None:
     if service in {"github", "hackernews"}:
         config = AIConfig(api_key_path=args.api_key_path, vertex_path=args.vertex_path)
         if not config.has_api_key:
-            raise RuntimeError("Missing Gemini API key. Set api_key.text or pass --api-key-path.")
+            raise RuntimeError(
+                "Missing Gemini API key. Set GEMINI_API_KEY/GOOGLE_API_KEY or pass --api-key-path."
+            )
         api = GeminiAPI(config)
         if service == "github":
             output_text = translate_github_briefs(api, args.model, output_text)

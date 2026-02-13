@@ -12,16 +12,25 @@
 - Github 趋势按 item 列表展示（英文 + 中文翻译）
 - OSS 索引读取与本地回退
 
-## 关键配置文件
+## 环境变量（推荐）
 
-- `api_key.text`：Gemini API Key（用于日报生成和趋势翻译）
-- `trending_api.txt`：Search1API Key（用于 Github 趋势抓取）
-- `env.py`：OSS 配置（如 `bucket_name`、`endpoint`、`prefix` 等）
+- `GEMINI_API_KEY`（或 `GOOGLE_API_KEY`）：Gemini Key（日报生成与趋势翻译）
+- `SEARCH1_API_KEY`（或 `TRENDING_API_KEY`）：Search1API Key（Github 趋势抓取）
+- `ALIYUN_OSS_ACCESS_KEY_ID` / `ALIYUN_OSS_ACCESS_KEY_SECRET`
+- `ALIYUN_OSS_BUCKET_NAME` / `ALIYUN_OSS_ENDPOINT`
+- 可选：`ALIYUN_OSS_PUBLIC_BASE_URL`、`ALIYUN_OSS_PREFIX`
+
+兼容兜底（本地）：
+
+- `api_key.text`：Gemini Key 文件
+- `trending_api.txt`：Search1API Key 文件
+- `env.py`：OSS 配置文件
 
 ## 本地运行
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
@@ -41,7 +50,7 @@ bash skill_m2h.sh
 生成成功后会产出/更新：
 
 - 本地 `outputs/` 日报文件
-- OSS 对应 Markdown 与 `index.json`（若 `env.py` 配置可用）
+- OSS 对应 Markdown 与 `index.json`（若 OSS 环境变量或 `env.py` 可用）
 
 ## Github 趋势抓取与翻译
 
@@ -55,8 +64,8 @@ python3 scripts/fetch_github_trending.py --max-results 20
 
 - `--max-results`：趋势条数（默认 20）
 - `--translate / --no-translate`：开启或关闭 Gemini 翻译（默认开启）
-- `--api-key-path`：趋势 API key 文件路径（默认 `trending_api.txt`）
-- `--gemini-api-key-path`：Gemini key 文件路径（默认 `api_key.text`）
+- `--api-key-path`：趋势 key 文件兜底路径（默认 `trending_api.txt`，环境变量优先）
+- `--gemini-api-key-path`：Gemini key 文件兜底路径（默认 `api_key.text`，环境变量优先）
 
 ## 主要目录
 
@@ -80,3 +89,4 @@ python3 scripts/fetch_github_trending.py --max-results 20
 - 运行时触发脚本（例如“生成今日日报”）更适合本地或自托管服务器
 - 无状态平台通常不适合长期持久化本地文件输出
 - 若线上依赖 Google Fonts，构建环境需允许访问 Google 字体服务
+- Vercel 上请在 Project Settings -> Environment Variables 配置上述 key，避免提交到仓库
