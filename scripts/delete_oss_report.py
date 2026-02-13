@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Delete one report markdown from OSS and update index.json."""
-## ceshi
+## ceshi 22
 from __future__ import annotations
 
 import argparse
