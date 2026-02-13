@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { GenerateTodayButton } from "@/components/generate-today-button";
 import { getAllReports } from "@/lib/reports";
 import { getGithubTrending } from "@/lib/trending";
 
@@ -66,8 +65,6 @@ export default async function Home({ searchParams }: HomeProps) {
                         阅读最新一期
                       </Link>
                     ) : null}
-                    <GenerateTodayButton />
-                    <code className="cmd">bash skill_m2h.sh</code>
                   </div>
                 </div>
 
@@ -94,15 +91,13 @@ export default async function Home({ searchParams }: HomeProps) {
 
               <section className="grid-head">
                 <h2>日报归档</h2>
-                <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请先运行脚本生成。"}</p>
+                <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
               </section>
 
               {reports.length === 0 ? (
                 <section className="empty-card">
                   <p>当前没有可展示的日报文件。</p>
-                  <p>
-                    运行 <code>bash skill_m2h.sh</code> 后，会生成日报并上传 OSS（同时保留本地 <code>outputs/</code>）。
-                  </p>
+                  <p>请在本地生成并上传到 OSS 后刷新页面。</p>
                 </section>
               ) : (
                 <section className="report-grid">
@@ -133,13 +128,13 @@ export default async function Home({ searchParams }: HomeProps) {
                     <span className="hero-glow"> Daily Snapshot</span>
                   </h1>
                   <p className="hero-copy">
-                    数据由 <code>apis_trending</code> 目录脚本抓取，按条目展示热门仓库，并使用 Gemini 自动翻译英文简介。
+                    数据由服务端实时抓取并按条目展示热门仓库，同时使用 Gemini 自动翻译英文简介。
                   </p>
                   <div className="hero-actions">
                     <Link className="btn btn-primary" href="/?tab=github">
                       刷新趋势
                     </Link>
-                    <code className="cmd">python3 scripts/fetch_github_trending.py</code>
+                    <code className="cmd">Server-side Fetch</code>
                   </div>
                 </div>
 
@@ -155,7 +150,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className="hero-metric">
                     <span>数据源</span>
-                    <strong>apis_trending</strong>
+                    <strong>Search1API</strong>
                   </div>
                   <div className="hero-metric">
                     <span>翻译状态</span>
@@ -210,7 +205,7 @@ export default async function Home({ searchParams }: HomeProps) {
               ) : (
                 <section className="empty-card">
                   <p>当前没有可展示的 Github 趋势数据。</p>
-                  <p>请确认已配置 `SEARCH1_API_KEY`（或本地 `trending_api.txt`），然后刷新本页。</p>
+                  <p>请确认已配置 `SEARCH1_API_KEY`，然后刷新本页。</p>
                 </section>
               )}
             </>

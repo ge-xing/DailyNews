@@ -1,7 +1,17 @@
-import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import {
+  buildIndexObjectName,
+  buildPublicOssUrl,
+  buildReportObjectName,
+  deleteObject,
+  isOssConfigured,
+  loadIndexItems,
+  loadOssConfig,
+  putJsonObject,
+} from "@/lib/oss";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,82 +32,77 @@ function decodeSlug(slug: string): string | null {
   }
 }
 
-function runDeleteScript(fileName: string): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const cwd = process.cwd();
-    const scriptPath = path.join(cwd, "scripts", "delete_oss_report.py");
-    const child = spawn("python3", [scriptPath, "--file-name", fileName], {
-      cwd,
-      env: process.env,
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      reject(new Error("删除超时（120秒）"));
-    }, 120_000);
-
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
-    });
-
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-    });
-
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? 1, stdout, stderr });
-    });
-  });
-}
-
-function parseJsonFromStdout(stdout: string): Record<string, unknown> | null {
-  const lines = stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length === 0) return null;
-  const last = lines[lines.length - 1];
-  try {
-    const parsed = JSON.parse(last) as Record<string, unknown>;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 async function deleteLocalArtifacts(fileName: string) {
-  const outputsDir = path.join(process.cwd(), "outputs");
   const safeName = path.basename(fileName);
-  const reportPath = path.join(outputsDir, safeName);
-
   const ext = path.extname(safeName);
   const stem = ext ? safeName.slice(0, -ext.length) : safeName;
-  const wechatPath = path.join(outputsDir, `${stem} - 公众号格式${ext || ".md"}`);
-  const materialsDir = path.join(outputsDir, `${stem}素材`);
+  const outputDirs = [path.join(process.cwd(), "outputs"), path.join(tmpdir(), "daily-news", "outputs")];
 
-  const targets = [reportPath, wechatPath];
-  for (const target of targets) {
+  for (const outputsDir of outputDirs) {
+    const reportPath = path.join(outputsDir, safeName);
+    const wechatPath = path.join(outputsDir, `${stem} - 公众号格式${ext || ".md"}`);
+    const materialsDir = path.join(outputsDir, `${stem}素材`);
+
+    const targets = [reportPath, wechatPath];
+    for (const target of targets) {
+      try {
+        await fs.rm(target, { force: true });
+      } catch {
+        // ignore local cleanup errors
+      }
+    }
+
     try {
-      await fs.rm(target, { force: true });
+      await fs.rm(materialsDir, { recursive: true, force: true });
     } catch {
       // ignore local cleanup errors
     }
   }
+}
 
-  try {
-    await fs.rm(materialsDir, { recursive: true, force: true });
-  } catch {
-    // ignore local cleanup errors
+function compareByFileNameDesc(a: Record<string, unknown>, b: Record<string, unknown>): number {
+  const af = String(a.fileName || "");
+  const bf = String(b.fileName || "");
+  return bf.localeCompare(af);
+}
+
+async function deleteFromOss(fileName: string): Promise<{ objectName?: string; indexUpdated: boolean }> {
+  const config = await loadOssConfig();
+  if (!isOssConfigured(config)) {
+    return { indexUpdated: false };
   }
+
+  const indexObjectName = buildIndexObjectName(config.prefix);
+  const items = await loadIndexItems(config, indexObjectName);
+
+  let objectName = "";
+  const remaining: Record<string, unknown>[] = [];
+  for (const item of items) {
+    const itemFileName = String(item.fileName || "").trim();
+    if (!objectName && itemFileName === fileName) {
+      objectName = String(item.objectName || "").trim();
+      continue;
+    }
+    remaining.push(item);
+  }
+
+  if (!objectName) {
+    objectName = buildReportObjectName(config.prefix, fileName);
+  }
+
+  await deleteObject(config, objectName);
+  const nextItems = remaining.sort(compareByFileNameDesc);
+  await putJsonObject(config, indexObjectName, {
+    generated_at: new Date().toISOString(),
+    count: nextItems.length,
+    prefix: config.prefix,
+    items: nextItems,
+  });
+
+  return {
+    objectName,
+    indexUpdated: true,
+  };
 }
 
 export async function DELETE(_: Request, { params }: RouteParams) {
@@ -114,32 +119,23 @@ export async function DELETE(_: Request, { params }: RouteParams) {
   }
 
   try {
-    const { code, stdout, stderr } = await runDeleteScript(fileName);
-    const payload = parseJsonFromStdout(stdout);
-
-    if (code !== 0) {
-      const message =
-        (payload?.message as string | undefined) ||
-        stderr.trim().split("\n").slice(-2).join(" | ") ||
-        "删除失败";
-      return NextResponse.json(
-        {
-          ok: false,
-          message,
-        },
-        { status: 500 },
-      );
-    }
-
+    const ossResult = await deleteFromOss(fileName);
     await deleteLocalArtifacts(fileName);
+
+    let deletedUrl = "";
+    if (ossResult.objectName) {
+      const config = await loadOssConfig();
+      if (isOssConfigured(config)) {
+        deletedUrl = buildPublicOssUrl(config, ossResult.objectName);
+      }
+    }
 
     return NextResponse.json(
       {
         ok: true,
-        message: (payload?.fileName as string | undefined)
-          ? `已删除：${String(payload?.fileName)}`
-          : "删除成功",
-        objectName: payload?.objectName,
+        message: `已删除：${fileName}`,
+        objectName: ossResult.objectName || "",
+        deletedUrl,
       },
       { status: 200 },
     );

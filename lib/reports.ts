@@ -1,7 +1,8 @@
 import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-const OUTPUTS_DIR = path.join(process.cwd(), "outputs");
+const OUTPUTS_DIRS = [path.join(process.cwd(), "outputs"), path.join(tmpdir(), "daily-news", "outputs")];
 const ENV_PY = path.join(process.cwd(), "env.py");
 const REPORT_MARKER = "Karpathy 精选 RSS 日报";
 const WECHAT_MARKER = "公众号格式";
@@ -148,8 +149,7 @@ function compareByDateDesc(a: { fileName: string }, b: { fileName: string }): nu
   return b.fileName.localeCompare(a.fileName);
 }
 
-async function buildLocalMeta(fileName: string): Promise<ReportMetaInternal> {
-  const fullPath = path.join(OUTPUTS_DIR, fileName);
+async function buildLocalMeta(fileName: string, fullPath: string): Promise<ReportMetaInternal> {
   const [content, stat] = await Promise.all([fs.readFile(fullPath, "utf8"), fs.stat(fullPath)]);
   const title = content.split("\n")[0]?.trim() || fileName.replace(/\.md$/, "");
 
@@ -167,16 +167,29 @@ async function buildLocalMeta(fileName: string): Promise<ReportMetaInternal> {
 }
 
 async function getAllLocalReportsInternal(): Promise<ReportMetaInternal[]> {
-  let entries: string[] = [];
-  try {
-    const dirEntries = await fs.readdir(OUTPUTS_DIR, { withFileTypes: true });
-    entries = dirEntries.filter((entry) => entry.isFile()).map((entry) => entry.name);
-  } catch {
-    return [];
+  const filePathMap = new Map<string, string>();
+
+  for (const dir of OUTPUTS_DIRS) {
+    try {
+      const dirEntries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of dirEntries) {
+        if (!entry.isFile()) continue;
+        const fileName = entry.name;
+        if (!filePathMap.has(fileName)) {
+          filePathMap.set(fileName, path.join(dir, fileName));
+        }
+      }
+    } catch {
+      // ignore missing directories
+    }
   }
 
-  const reportFiles = entries.filter(isReportFile).sort((a, b) => compareByDateDesc({ fileName: a }, { fileName: b }));
-  const metas = await Promise.all(reportFiles.map((name) => buildLocalMeta(name)));
+  const reportFiles = Array.from(filePathMap.keys())
+    .filter(isReportFile)
+    .sort((a, b) => compareByDateDesc({ fileName: a }, { fileName: b }));
+  const metas = await Promise.all(
+    reportFiles.map((name) => buildLocalMeta(name, filePathMap.get(name) || path.join(OUTPUTS_DIRS[0], name))),
+  );
   return metas;
 }
 
@@ -358,7 +371,16 @@ export async function getReportBySlug(slug: string): Promise<ReportDetail | null
   if (meta.source === "oss") return null;
 
   try {
-    const content = await fs.readFile(path.join(OUTPUTS_DIR, fileName), "utf8");
+    let content = "";
+    for (const dir of OUTPUTS_DIRS) {
+      try {
+        content = await fs.readFile(path.join(dir, fileName), "utf8");
+        break;
+      } catch {
+        // try next directory
+      }
+    }
+    if (!content) return null;
     return {
       ...toPublicMeta(meta),
       content,
