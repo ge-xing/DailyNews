@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllReports } from "@/lib/reports";
+import { getAllReports, type ReportChannel } from "@/lib/reports";
 import { getGithubTrending } from "@/lib/trending";
 
 export const dynamic = "force-dynamic";
@@ -9,17 +9,48 @@ type HomeProps = {
   searchParams: Promise<{ tab?: string }>;
 };
 
-type TabKey = "ai" | "github";
+type TabKey = ReportChannel | "github";
+
+type ReportTabConfig = {
+  tabLabel: string;
+  heroKicker: string;
+  heroTitle: string;
+  heroGlow: string;
+  heroCopy: string;
+};
 
 function normalizeTab(tab?: string): TabKey {
-  return tab === "github" ? "github" : "ai";
+  if (tab === "github") return "github";
+  if (tab === "crypto") return "crypto";
+  return "ai";
+}
+
+function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
+  if (channel === "crypto") {
+    return {
+      tabLabel: "币圈日报",
+      heroKicker: "Crypto RSS Feed",
+      heroTitle: "币圈日报",
+      heroGlow: " Market Brief",
+      heroCopy: "站点优先从 OSS 读取币圈每日 Markdown 报告，自动归档并支持详情页阅读。",
+    };
+  }
+
+  return {
+    tabLabel: "AI日报",
+    heroKicker: "Karpathy Curated RSS",
+    heroTitle: "AI 日报",
+    heroGlow: " Web Archive",
+    heroCopy: "站点优先从 OSS 读取每日 Markdown 报告，自动按日期归档；详情页支持长文阅读与快速跳转。",
+  };
 }
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
+  const activeReportChannel: ReportChannel | null = activeTab === "github" ? null : activeTab;
 
-  const reports = activeTab === "ai" ? await getAllReports() : [];
+  const reports = activeReportChannel ? await getAllReports(activeReportChannel) : [];
   const trending = activeTab === "github" ? await getGithubTrending(20) : null;
 
   const latest = reports[0];
@@ -27,6 +58,8 @@ export default async function Home({ searchParams }: HomeProps) {
   const latestItems = latest?.itemCount ?? 0;
   const latestThemes = latest?.themeCount ?? 0;
   const fetchedAt = trending?.fetchedAt ? new Date(trending.fetchedAt).toLocaleString("zh-CN", { hour12: false }) : "";
+
+  const reportTabConfig = activeReportChannel ? getReportTabConfig(activeReportChannel) : null;
 
   return (
     <main className="shell">
@@ -39,29 +72,30 @@ export default async function Home({ searchParams }: HomeProps) {
             <Link href="/?tab=ai" className={`side-tab ${activeTab === "ai" ? "is-active" : ""}`}>
               AI日报
             </Link>
+            <Link href="/?tab=crypto" className={`side-tab ${activeTab === "crypto" ? "is-active" : ""}`}>
+              币圈日报
+            </Link>
             <Link href="/?tab=github" className={`side-tab ${activeTab === "github" ? "is-active" : ""}`}>
               Github趋势
             </Link>
           </nav>
-          <p className="sidebar-tip">通过左侧切换日报归档与 Github 热门仓库。</p>
+          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报与 Github 热门仓库。</p>
         </aside>
 
         <div className="main-panel">
-          {activeTab === "ai" ? (
+          {activeReportChannel && reportTabConfig ? (
             <>
               <section className="hero">
                 <div className="hero-main">
-                  <p className="hero-kicker">Karpathy Curated RSS</p>
+                  <p className="hero-kicker">{reportTabConfig.heroKicker}</p>
                   <h1>
-                    AI 日报
-                    <span className="hero-glow"> Web Archive</span>
+                    {reportTabConfig.heroTitle}
+                    <span className="hero-glow">{reportTabConfig.heroGlow}</span>
                   </h1>
-                  <p className="hero-copy">
-                    站点优先从 OSS 读取每日 Markdown 报告，自动按日期归档；详情页支持长文阅读与快速跳转。
-                  </p>
+                  <p className="hero-copy">{reportTabConfig.heroCopy}</p>
                   <div className="hero-actions">
                     {latest ? (
-                      <Link className="btn btn-primary" href={`/reports/${latest.slug}`}>
+                      <Link className="btn btn-primary" href={`/reports/${latest.slug}?tab=${activeReportChannel}`}>
                         阅读最新一期
                       </Link>
                     ) : null}
@@ -90,7 +124,7 @@ export default async function Home({ searchParams }: HomeProps) {
               </section>
 
               <section className="grid-head">
-                <h2>日报归档</h2>
+                <h2>{reportTabConfig.tabLabel}归档</h2>
                 <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
               </section>
 
@@ -110,7 +144,7 @@ export default async function Home({ searchParams }: HomeProps) {
                         <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
                         <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
                       </div>
-                      <Link className="card-link" href={`/reports/${report.slug}`}>
+                      <Link className="card-link" href={`/reports/${report.slug}?tab=${report.channel}`}>
                         打开全文
                       </Link>
                     </article>
@@ -127,9 +161,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     Github 趋势
                     <span className="hero-glow"> Daily Snapshot</span>
                   </h1>
-                  <p className="hero-copy">
-                    数据由服务端实时抓取并按条目展示热门仓库，同时使用 Gemini 自动翻译英文简介。
-                  </p>
+                  <p className="hero-copy">数据由服务端实时抓取并按条目展示热门仓库，同时使用 Gemini 自动翻译英文简介。</p>
                   <div className="hero-actions">
                     <Link className="btn btn-primary" href="/?tab=github">
                       刷新趋势

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Karpathy RSS daily report from the gist feed list (last 24h)."""
+"""Generate RSS daily report from a gist feed list (last N hours)."""
 
 from __future__ import annotations
 
@@ -32,6 +32,8 @@ from core.api import build_public_oss_url, load_oss_config, upload_json_to_oss, 
 DEFAULT_GIST_URL = "https://gist.github.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b"
 USER_AGENT = "Mozilla/5.0 (compatible; KarpathyRSSBot/1.0; +https://github.com)"
 OSS_CONFIG = load_oss_config(REPO_ROOT / "env.py")
+DEFAULT_REPORT_NAME = "Karpathy 精选 RSS 日报"
+DEFAULT_MATERIAL_GROUP_NAME = "Karpathy 精选 RSS 日报素材"
 
 
 @dataclass
@@ -81,9 +83,7 @@ def parse_args() -> argparse.Namespace:
             for k in ("access_key_id", "access_key_secret", "bucket_name", "endpoint")
         )
 
-    parser = argparse.ArgumentParser(
-        description="Fetch feed items from Karpathy gist and generate daily report with Gemini."
-    )
+    parser = argparse.ArgumentParser(description="Fetch feed items from gist and generate daily report with Gemini.")
     parser.add_argument("--prompt-file", type=Path, default=default_prompt)
     parser.add_argument(
         "--api-key-file",
@@ -92,6 +92,16 @@ def parse_args() -> argparse.Namespace:
         help="Gemini API key file fallback. Env first: GEMINI_API_KEY / GOOGLE_API_KEY.",
     )
     parser.add_argument("--gist-url", default=DEFAULT_GIST_URL)
+    parser.add_argument(
+        "--report-name",
+        default=DEFAULT_REPORT_NAME,
+        help="Report name used in output filenames (without date prefix).",
+    )
+    parser.add_argument(
+        "--material-group-name",
+        default=DEFAULT_MATERIAL_GROUP_NAME,
+        help="Material group name used in output folder name (without date prefix).",
+    )
     parser.add_argument(
         "--date",
         default=now.astimezone().strftime("%Y-%m-%d"),
@@ -629,8 +639,14 @@ def enrich_articles(
             progress_end()
 
 
-def save_material_group(base_dir: Path, date_label: str, entries: list[FeedEntry]) -> Path:
-    group_dir = base_dir / f"{date_label} - Karpathy 精选 RSS 日报素材"
+def save_material_group(
+    base_dir: Path,
+    date_label: str,
+    entries: list[FeedEntry],
+    material_group_name: str,
+) -> Path:
+    group_name = (material_group_name or "").strip() or DEFAULT_MATERIAL_GROUP_NAME
+    group_dir = base_dir / f"{date_label} - {group_name}"
     group_dir.mkdir(parents=True, exist_ok=True)
 
     payload = {
@@ -643,7 +659,7 @@ def save_material_group(base_dir: Path, date_label: str, entries: list[FeedEntry
     )
 
     lines = [
-        f"# {date_label} - Karpathy 精选 RSS 日报素材",
+        f"# {date_label} - {group_name}",
         "",
         f"- 条目数：{len(entries)}",
         f"- 生成时间（UTC）：{payload['generated_at']}",
@@ -729,6 +745,7 @@ def build_full_prompt(
     gist_url: str,
     entries: list[FeedEntry],
     user_input: str,
+    report_name: str,
 ) -> str:
     materials_json = json.dumps([asdict(e) for e in entries], ensure_ascii=False, indent=2)
     extra = f"\n补充要求：{user_input.strip()}" if user_input.strip() else ""
@@ -741,14 +758,21 @@ def build_full_prompt(
         "3) 如果某条素材没有原文摘录，需明确标注‘仅基于 feed 摘要’。\n"
         "4) 输出必须是完整 markdown 文档。\n"
         "5) 不要输出任何尾注、署名或“本日报由 AI 自动生成 | 数据源”这一类文案。\n\n"
-        f"执行上下文：\n- 日期标签：{date_label}\n- 统计窗口：过去 {window_hours} 小时\n- 数据源列表：{gist_url}{extra}\n\n"
+        f"执行上下文：\n- 日报名称：{report_name}\n- 日期标签：{date_label}\n- 统计窗口：过去 {window_hours} 小时\n- 数据源列表：{gist_url}{extra}\n\n"
         "已抓取素材（JSON）：\n"
         f"```json\n{materials_json}\n```\n"
     )
 
 
-def save_report(default_dir: Path, date_label: str, text: str, explicit_path: Path | None) -> Path:
-    path = explicit_path or (default_dir / f"{date_label} - Karpathy 精选 RSS 日报.md")
+def save_report(
+    default_dir: Path,
+    date_label: str,
+    report_name: str,
+    text: str,
+    explicit_path: Path | None,
+) -> Path:
+    clean_report_name = (report_name or "").strip() or DEFAULT_REPORT_NAME
+    path = explicit_path or (default_dir / f"{date_label} - {clean_report_name}.md")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
     return path
@@ -885,6 +909,7 @@ def markdown_to_wechat_text(markdown_text: str) -> str:
 def save_wechat_report(
     default_dir: Path,
     date_label: str,
+    report_name: str,
     wechat_text: str,
     explicit_path: Path | None,
     md_path: Path | None,
@@ -895,7 +920,8 @@ def save_wechat_report(
         suffix = md_path.suffix if md_path.suffix else ".txt"
         path = md_path.with_name(f"{md_path.stem} - 公众号格式{suffix}")
     else:
-        path = default_dir / f"{date_label} - Karpathy 精选 RSS 日报 - 公众号格式.md"
+        clean_report_name = (report_name or "").strip() or DEFAULT_REPORT_NAME
+        path = default_dir / f"{date_label} - {clean_report_name} - 公众号格式.md"
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(wechat_text.rstrip() + "\n", encoding="utf-8")
@@ -941,7 +967,12 @@ def main() -> int:
         show_progress=True,
     )
     log_stage("正在写入素材组文件")
-    material_dir = save_material_group(args.output_dir, args.date, entries)
+    material_dir = save_material_group(
+        args.output_dir,
+        args.date,
+        entries,
+        args.material_group_name,
+    )
 
     print(
         (
@@ -959,6 +990,7 @@ def main() -> int:
         gist_url=args.gist_url,
         entries=entries,
         user_input=user_input,
+        report_name=args.report_name,
     )
 
     if args.dry_run:
@@ -986,13 +1018,25 @@ def main() -> int:
     md_out_path: Path | None = None
     if not args.no_save:
         log_stage("正在保存日报文件")
-        md_out_path = save_report(args.output_dir, args.date, report, args.save)
+        md_out_path = save_report(
+            args.output_dir,
+            args.date,
+            args.report_name,
+            report,
+            args.save,
+        )
         print(f"[Saved] {md_out_path}", file=sys.stderr)
 
     if args.upload_oss:
         if md_out_path is None:
             log_stage("启用 OSS 上传：先保存日报文件")
-            md_out_path = save_report(args.output_dir, args.date, report, args.save)
+            md_out_path = save_report(
+                args.output_dir,
+                args.date,
+                args.report_name,
+                report,
+                args.save,
+            )
             print(f"[Saved] {md_out_path}", file=sys.stderr)
 
         oss_object_name = args.oss_object_name or build_oss_object_name(args.oss_prefix, md_out_path.name)
@@ -1058,6 +1102,7 @@ def main() -> int:
             wechat_out_path = save_wechat_report(
                 default_dir=args.output_dir,
                 date_label=args.date,
+                report_name=args.report_name,
                 wechat_text=wechat_text,
                 explicit_path=args.save_wechat,
                 md_path=md_out_path,

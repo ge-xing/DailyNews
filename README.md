@@ -1,8 +1,9 @@
 # AI Daily News Site
 
-一个基于 Next.js 的日报网站，首页左侧支持双 Tab：
+一个基于 Next.js 的日报网站，首页左侧支持多 Tab：
 
 - `AI日报`：展示每日 Markdown 报告归档（优先 OSS，失败回退本地 `outputs/`）。
+- `币圈日报`：展示币圈每日资讯归档（优先 OSS，失败回退本地 `outputs/`）。
 - `Github趋势`：服务端直接调用 Search1API 抓取趋势，并使用 Gemini 将英文简介翻译为中文。
 
 ## 功能概览
@@ -18,12 +19,14 @@
 - `ALIYUN_OSS_ACCESS_KEY_ID` / `ALIYUN_OSS_ACCESS_KEY_SECRET`
 - `ALIYUN_OSS_BUCKET_NAME` / `ALIYUN_OSS_ENDPOINT`
 - 可选：`ALIYUN_OSS_PUBLIC_BASE_URL`、`ALIYUN_OSS_PREFIX`
+- 可选（币圈日报专用）：`ALIYUN_OSS_CRYPTO_PREFIX`（默认 `daily-news/crypto-reports`）
+- 可选（币圈日报专用）：`ALIYUN_OSS_CRYPTO_INDEX_URL`（显式指定 index.json 地址）
 
 兼容兜底（本地）：
 
 - `api_key.text`：Gemini Key 文件
 - `trending_api.txt`：Search1API Key 文件
-- `env.py`：OSS 配置文件
+- `env.py`：OSS 配置文件（可选增加 `crypto_prefix`）
 
 ## 本地运行
 
@@ -40,6 +43,31 @@ npm run dev
 - 在本地运行你的生成流程。
 - 上传日报 Markdown 到 OSS，并更新 `index.json`。
 - 网站会自动从 OSS 索引读取并展示。
+
+```bash
+bash skill_m2h.sh
+```
+
+## 币圈日报生成
+
+默认使用 `miguelmota` 的币圈 RSS gist：
+
+```bash
+bash skill_crypto.sh
+```
+
+可选参数示例：
+
+```bash
+# 调整抓取窗口、并发与 feed 数量
+bash skill_crypto.sh --window-hours 24 --max-feeds 160 --max-workers 12
+
+# 附加写作要求
+bash skill_crypto.sh "文末数据源必须是 gist 链接，保持简短。"
+
+# 只抓取不生成（检查数据量）
+bash skill_crypto.sh --dry-run
+```
 
 ## Github 趋势抓取与翻译
 

@@ -4,11 +4,41 @@ import path from "node:path";
 
 const OUTPUTS_DIRS = [path.join(process.cwd(), "outputs"), path.join(tmpdir(), "daily-news", "outputs")];
 const ENV_PY = path.join(process.cwd(), "env.py");
-const REPORT_MARKER = "Karpathy 精选 RSS 日报";
 const WECHAT_MARKER = "公众号格式";
+const MATERIAL_MARKER = "素材";
+
+export type ReportChannel = "ai" | "crypto";
+
+const DEFAULT_CHANNEL: ReportChannel = "ai";
+
+type ChannelConfig = {
+  reportMarker: string;
+  defaultPrefix: string;
+  prefixEnvKeys: readonly string[];
+  indexUrlEnvKeys: readonly string[];
+  envPyPrefixKeys: readonly string[];
+};
+
+const CHANNEL_CONFIG: Record<ReportChannel, ChannelConfig> = {
+  ai: {
+    reportMarker: "Karpathy 精选 RSS 日报",
+    defaultPrefix: "daily-news/reports",
+    prefixEnvKeys: ["ALIYUN_OSS_PREFIX", "OSS_PREFIX"],
+    indexUrlEnvKeys: ["ALIYUN_OSS_INDEX_URL", "OSS_INDEX_URL"],
+    envPyPrefixKeys: ["prefix"],
+  },
+  crypto: {
+    reportMarker: "币圈每日资讯",
+    defaultPrefix: "daily-news/crypto-reports",
+    prefixEnvKeys: ["ALIYUN_OSS_CRYPTO_PREFIX", "OSS_CRYPTO_PREFIX"],
+    indexUrlEnvKeys: ["ALIYUN_OSS_CRYPTO_INDEX_URL", "OSS_CRYPTO_INDEX_URL"],
+    envPyPrefixKeys: ["crypto_prefix"],
+  },
+};
 
 export type ReportMeta = {
   slug: string;
+  channel: ReportChannel;
   title: string;
   date: string;
   fileName: string;
@@ -30,6 +60,7 @@ type ReportMetaInternal = ReportMeta & {
 type EnvPyVars = Record<string, string>;
 
 type OssRuntimeConfig = {
+  channel: ReportChannel;
   prefix: string;
   indexUrl: string;
   publicBaseUrl: string;
@@ -85,6 +116,26 @@ function normalizeEndpoint(endpoint: string): string {
   return endpoint.replace(/^https?:\/\//, "").replace(/\/+$/, "").trim();
 }
 
+function getEnvFirst(keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+function getEnvPyFirst(envPyVars: EnvPyVars, keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = envPyVars[key];
+    if (value && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
 function parseEnvPyVars(text: string): EnvPyVars {
   const vars: EnvPyVars = {};
   const regex = /^\s*([a-zA-Z_]\w*)\s*=\s*['"]([^'"]*)['"]\s*$/gm;
@@ -105,12 +156,15 @@ async function loadEnvPyVars(): Promise<EnvPyVars> {
   }
 }
 
-function isReportFile(fileName: string): boolean {
+function isReportLikeMarkdown(fileName: string): boolean {
   if (!fileName.endsWith(".md")) return false;
-  if (!fileName.includes(REPORT_MARKER)) return false;
   if (fileName.includes(WECHAT_MARKER)) return false;
-  if (fileName.includes("素材")) return false;
+  if (fileName.includes(MATERIAL_MARKER)) return false;
   return true;
+}
+
+function matchChannelFileName(fileName: string, channel: ReportChannel): boolean {
+  return fileName.includes(CHANNEL_CONFIG[channel].reportMarker);
 }
 
 function extractItemCount(text: string): number {
@@ -149,12 +203,13 @@ function compareByDateDesc(a: { fileName: string }, b: { fileName: string }): nu
   return b.fileName.localeCompare(a.fileName);
 }
 
-async function buildLocalMeta(fileName: string, fullPath: string): Promise<ReportMetaInternal> {
+async function buildLocalMeta(fileName: string, fullPath: string, channel: ReportChannel): Promise<ReportMetaInternal> {
   const [content, stat] = await Promise.all([fs.readFile(fullPath, "utf8"), fs.stat(fullPath)]);
   const title = content.split("\n")[0]?.trim() || fileName.replace(/\.md$/, "");
 
   return {
     slug: toSlug(fileName),
+    channel,
     title,
     date: safeDateFromName(fileName),
     fileName,
@@ -166,7 +221,7 @@ async function buildLocalMeta(fileName: string, fullPath: string): Promise<Repor
   };
 }
 
-async function getAllLocalReportsInternal(): Promise<ReportMetaInternal[]> {
+async function getAllLocalReportsInternal(channel: ReportChannel): Promise<ReportMetaInternal[]> {
   const filePathMap = new Map<string, string>();
 
   for (const dir of OUTPUTS_DIRS) {
@@ -185,21 +240,21 @@ async function getAllLocalReportsInternal(): Promise<ReportMetaInternal[]> {
   }
 
   const reportFiles = Array.from(filePathMap.keys())
-    .filter(isReportFile)
+    .filter((fileName) => isReportLikeMarkdown(fileName) && matchChannelFileName(fileName, channel))
     .sort((a, b) => compareByDateDesc({ fileName: a }, { fileName: b }));
   const metas = await Promise.all(
-    reportFiles.map((name) => buildLocalMeta(name, filePathMap.get(name) || path.join(OUTPUTS_DIRS[0], name))),
+    reportFiles.map((name) => buildLocalMeta(name, filePathMap.get(name) || path.join(OUTPUTS_DIRS[0], name), channel)),
   );
   return metas;
 }
 
-async function getOssRuntimeConfig(): Promise<OssRuntimeConfig | null> {
+async function getOssRuntimeConfig(channel: ReportChannel): Promise<OssRuntimeConfig | null> {
   const envPy = await loadEnvPyVars();
+  const channelConfig = CHANNEL_CONFIG[channel];
   const prefix =
-    process.env.ALIYUN_OSS_PREFIX ||
-    process.env.OSS_PREFIX ||
-    envPy.prefix ||
-    "daily-news/reports";
+    getEnvFirst(channelConfig.prefixEnvKeys) ||
+    getEnvPyFirst(envPy, channelConfig.envPyPrefixKeys) ||
+    channelConfig.defaultPrefix;
 
   const publicBaseUrl =
     process.env.ALIYUN_OSS_PUBLIC_BASE_URL ||
@@ -212,8 +267,9 @@ async function getOssRuntimeConfig(): Promise<OssRuntimeConfig | null> {
   const endpoint = normalizeEndpoint(endpointRaw);
   const bucketBaseUrl = bucket && endpoint ? `https://${bucket}.${endpoint}` : "";
 
-  const indexObject = `${prefix.replace(/^\/+|\/+$/g, "")}/index.json`;
-  const indexUrlFromEnv = process.env.ALIYUN_OSS_INDEX_URL || process.env.OSS_INDEX_URL || "";
+  const cleanPrefix = prefix.replace(/^\/+|\/+$/g, "");
+  const indexObject = `${cleanPrefix}/index.json`;
+  const indexUrlFromEnv = getEnvFirst(channelConfig.indexUrlEnvKeys);
   const indexUrl = indexUrlFromEnv
     ? indexUrlFromEnv
     : publicBaseUrl
@@ -225,7 +281,8 @@ async function getOssRuntimeConfig(): Promise<OssRuntimeConfig | null> {
   if (!indexUrl || !isValidAbsoluteHttpUrl(indexUrl)) return null;
 
   return {
-    prefix,
+    channel,
+    prefix: cleanPrefix,
     indexUrl,
     publicBaseUrl,
     bucketBaseUrl,
@@ -251,14 +308,17 @@ function resolveContentUrl(
     if (config.bucketBaseUrl) return joinUrl(config.bucketBaseUrl, objectName);
   }
 
-  const fallbackObject = `${config.prefix.replace(/^\/+|\/+$/g, "")}/${fileName}`;
+  const fallbackObject = `${config.prefix}/${fileName}`;
   if (config.publicBaseUrl) return joinUrl(config.publicBaseUrl, fallbackObject);
   if (config.bucketBaseUrl) return joinUrl(config.bucketBaseUrl, fallbackObject);
   return undefined;
 }
 
-async function getAllOssReportsInternal(configInput?: OssRuntimeConfig | null): Promise<ReportMetaInternal[]> {
-  const config = configInput ?? (await getOssRuntimeConfig());
+async function getAllOssReportsInternal(
+  channel: ReportChannel,
+  configInput?: OssRuntimeConfig | null,
+): Promise<ReportMetaInternal[]> {
+  const config = configInput ?? (await getOssRuntimeConfig(channel));
   if (!config) return [];
 
   try {
@@ -275,7 +335,7 @@ async function getAllOssReportsInternal(configInput?: OssRuntimeConfig | null): 
         (typeof entry.fileName === "string" && entry.fileName.trim()) ||
         (typeof entry.objectName === "string" ? path.basename(entry.objectName.trim()) : "");
       const fileName = path.basename(fileNameRaw);
-      if (!fileName || !isReportFile(fileName)) continue;
+      if (!fileName || !isReportLikeMarkdown(fileName)) continue;
 
       const titleRaw = typeof entry.title === "string" ? entry.title.trim() : "";
       const excerptRaw = typeof entry.excerpt === "string" ? entry.excerpt.trim() : "";
@@ -285,6 +345,7 @@ async function getAllOssReportsInternal(configInput?: OssRuntimeConfig | null): 
 
       items.push({
         slug: toSlug(fileName),
+        channel,
         title: titleRaw || fileName.replace(/\.md$/, ""),
         date: dateRaw || safeDateFromName(fileName),
         fileName,
@@ -307,6 +368,7 @@ async function getAllOssReportsInternal(configInput?: OssRuntimeConfig | null): 
 function toPublicMeta(item: ReportMetaInternal): ReportMeta {
   return {
     slug: item.slug,
+    channel: item.channel,
     title: item.title,
     date: item.date,
     fileName: item.fileName,
@@ -317,75 +379,84 @@ function toPublicMeta(item: ReportMetaInternal): ReportMeta {
   };
 }
 
-async function findReportFromSources(fileName: string): Promise<ReportMetaInternal | null> {
-  const oss = await getAllOssReportsInternal();
-  const inOss = oss.find((it) => it.fileName === fileName);
-  if (inOss) return inOss;
+function getChannelSearchOrder(preferredChannel?: ReportChannel): ReportChannel[] {
+  if (preferredChannel === "crypto") return ["crypto", "ai"];
+  return ["ai", "crypto"];
+}
 
-  const local = await getAllLocalReportsInternal();
+async function findReportMetaInChannel(fileName: string, channel: ReportChannel): Promise<ReportMetaInternal | null> {
+  const ossConfig = await getOssRuntimeConfig(channel);
+  if (ossConfig) {
+    const oss = await getAllOssReportsInternal(channel, ossConfig);
+    const inOss = oss.find((it) => it.fileName === fileName);
+    return inOss ?? null;
+  }
+
+  const local = await getAllLocalReportsInternal(channel);
   const inLocal = local.find((it) => it.fileName === fileName);
   return inLocal ?? null;
 }
 
-export async function getAllReports(): Promise<ReportMeta[]> {
-  const ossConfig = await getOssRuntimeConfig();
+async function readLocalReportContent(fileName: string): Promise<string | null> {
+  for (const dir of OUTPUTS_DIRS) {
+    try {
+      return await fs.readFile(path.join(dir, fileName), "utf8");
+    } catch {
+      // try next directory
+    }
+  }
+  return null;
+}
+
+async function toReportDetail(meta: ReportMetaInternal): Promise<ReportDetail | null> {
+  if (meta.source === "oss") {
+    if (!meta.contentUrl || !isValidAbsoluteHttpUrl(meta.contentUrl)) return null;
+    try {
+      const resp = await fetch(withNoCacheParam(meta.contentUrl), { cache: "no-store" });
+      if (!resp.ok) return null;
+      const content = await resp.text();
+      return {
+        ...toPublicMeta(meta),
+        content,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  const content = await readLocalReportContent(meta.fileName);
+  if (!content) return null;
+  return {
+    ...toPublicMeta(meta),
+    content,
+  };
+}
+
+export async function getAllReports(channel: ReportChannel = DEFAULT_CHANNEL): Promise<ReportMeta[]> {
+  const ossConfig = await getOssRuntimeConfig(channel);
   if (ossConfig) {
-    const oss = await getAllOssReportsInternal(ossConfig);
+    const oss = await getAllOssReportsInternal(channel, ossConfig);
     return oss.map(toPublicMeta);
   }
 
-  const local = await getAllLocalReportsInternal();
+  const local = await getAllLocalReportsInternal(channel);
   return local.map(toPublicMeta);
 }
 
-export async function getReportBySlug(slug: string): Promise<ReportDetail | null> {
+export async function getReportBySlug(
+  slug: string,
+  preferredChannel?: ReportChannel,
+): Promise<ReportDetail | null> {
   const fileName = fromSlug(slug);
-  if (!fileName || path.basename(fileName) !== fileName || !isReportFile(fileName)) return null;
+  if (!fileName || path.basename(fileName) !== fileName || !isReportLikeMarkdown(fileName)) return null;
 
-  const ossConfig = await getOssRuntimeConfig();
-  if (ossConfig) {
-    const oss = await getAllOssReportsInternal(ossConfig);
-    const meta = oss.find((it) => it.fileName === fileName);
-    if (!meta) return null;
+  for (const channel of getChannelSearchOrder(preferredChannel)) {
+    const meta = await findReportMetaInChannel(fileName, channel);
+    if (!meta) continue;
 
-    if (meta.contentUrl && isValidAbsoluteHttpUrl(meta.contentUrl)) {
-      try {
-        const resp = await fetch(withNoCacheParam(meta.contentUrl), { cache: "no-store" });
-        if (resp.ok) {
-          const content = await resp.text();
-          return {
-            ...toPublicMeta(meta),
-            content,
-          };
-        }
-      } catch {
-        return null;
-      }
-    }
-    return null;
+    const detail = await toReportDetail(meta);
+    if (detail) return detail;
   }
 
-  const meta = await findReportFromSources(fileName);
-  if (!meta) return null;
-
-  if (meta.source === "oss") return null;
-
-  try {
-    let content = "";
-    for (const dir of OUTPUTS_DIRS) {
-      try {
-        content = await fs.readFile(path.join(dir, fileName), "utf8");
-        break;
-      } catch {
-        // try next directory
-      }
-    }
-    if (!content) return null;
-    return {
-      ...toPublicMeta(meta),
-      content,
-    };
-  } catch {
-    return null;
-  }
+  return null;
 }
