@@ -7,7 +7,7 @@ const ENV_PY = path.join(process.cwd(), "env.py");
 const WECHAT_MARKER = "公众号格式";
 const MATERIAL_MARKER = "素材";
 
-export type ReportChannel = "ai" | "crypto";
+export type ReportChannel = "ai" | "crypto" | "finance";
 
 const DEFAULT_CHANNEL: ReportChannel = "ai";
 
@@ -33,6 +33,13 @@ const CHANNEL_CONFIG: Record<ReportChannel, ChannelConfig> = {
     prefixEnvKeys: ["ALIYUN_OSS_CRYPTO_PREFIX", "OSS_CRYPTO_PREFIX"],
     indexUrlEnvKeys: ["ALIYUN_OSS_CRYPTO_INDEX_URL", "OSS_CRYPTO_INDEX_URL"],
     envPyPrefixKeys: ["crypto_prefix"],
+  },
+  finance: {
+    reportMarker: "每日财经资讯",
+    defaultPrefix: "daily-news/finance-reports",
+    prefixEnvKeys: ["ALIYUN_OSS_FINANCE_PREFIX", "OSS_FINANCE_PREFIX"],
+    indexUrlEnvKeys: ["ALIYUN_OSS_FINANCE_INDEX_URL", "OSS_FINANCE_INDEX_URL"],
+    envPyPrefixKeys: ["finance_prefix"],
   },
 };
 
@@ -66,6 +73,15 @@ type OssRuntimeConfig = {
   publicBaseUrl: string;
   bucketBaseUrl: string;
 };
+
+const FINANCE_CATEGORY_KEYS = [
+  "macro_policy",
+  "markets_assets",
+  "companies_industry",
+  "global_general_news",
+  "tech_business",
+  "crypto_digital_assets",
+] as const;
 
 function safeDateFromName(fileName: string): string {
   const match = fileName.match(/^(\d{4}-\d{2}-\d{2})\s*-/);
@@ -365,6 +381,57 @@ async function getAllOssReportsInternal(
   }
 }
 
+function buildFinanceCategoryConfig(baseConfig: OssRuntimeConfig, category: (typeof FINANCE_CATEGORY_KEYS)[number]): OssRuntimeConfig | null {
+  const subPrefix = `${baseConfig.prefix}/${category}`.replace(/^\/+|\/+$/g, "");
+  const indexObject = `${subPrefix}/index.json`;
+  let indexUrl = "";
+
+  if (baseConfig.publicBaseUrl) {
+    indexUrl = joinUrl(baseConfig.publicBaseUrl, indexObject);
+  } else if (baseConfig.bucketBaseUrl) {
+    indexUrl = joinUrl(baseConfig.bucketBaseUrl, indexObject);
+  } else if (isValidAbsoluteHttpUrl(baseConfig.indexUrl)) {
+    indexUrl = baseConfig.indexUrl.replace(/\/index\.json(?:\?.*)?$/i, `/${category}/index.json`);
+  }
+
+  if (!indexUrl || !isValidAbsoluteHttpUrl(indexUrl)) return null;
+  return {
+    channel: "finance",
+    prefix: subPrefix,
+    indexUrl,
+    publicBaseUrl: baseConfig.publicBaseUrl,
+    bucketBaseUrl: baseConfig.bucketBaseUrl,
+  };
+}
+
+function dedupeByFileName(items: ReportMetaInternal[]): ReportMetaInternal[] {
+  const merged = new Map<string, ReportMetaInternal>();
+  for (const item of items) {
+    const prev = merged.get(item.fileName);
+    if (!prev) {
+      merged.set(item.fileName, item);
+      continue;
+    }
+    if ((item.updatedAt || "") > (prev.updatedAt || "")) {
+      merged.set(item.fileName, item);
+    }
+  }
+  const out = Array.from(merged.values());
+  out.sort(compareByDateDesc);
+  return out;
+}
+
+async function getAllFinanceOssReportsInternal(baseConfig: OssRuntimeConfig): Promise<ReportMetaInternal[]> {
+  const configs: OssRuntimeConfig[] = [baseConfig];
+  for (const key of FINANCE_CATEGORY_KEYS) {
+    const cfg = buildFinanceCategoryConfig(baseConfig, key);
+    if (cfg) configs.push(cfg);
+  }
+
+  const lists = await Promise.all(configs.map((cfg) => getAllOssReportsInternal("finance", cfg)));
+  return dedupeByFileName(lists.flat());
+}
+
 function toPublicMeta(item: ReportMetaInternal): ReportMeta {
   return {
     slug: item.slug,
@@ -380,14 +447,18 @@ function toPublicMeta(item: ReportMetaInternal): ReportMeta {
 }
 
 function getChannelSearchOrder(preferredChannel?: ReportChannel): ReportChannel[] {
-  if (preferredChannel === "crypto") return ["crypto", "ai"];
-  return ["ai", "crypto"];
+  if (preferredChannel === "crypto") return ["crypto", "ai", "finance"];
+  if (preferredChannel === "finance") return ["finance", "ai", "crypto"];
+  return ["ai", "crypto", "finance"];
 }
 
 async function findReportMetaInChannel(fileName: string, channel: ReportChannel): Promise<ReportMetaInternal | null> {
   const ossConfig = await getOssRuntimeConfig(channel);
   if (ossConfig) {
-    const oss = await getAllOssReportsInternal(channel, ossConfig);
+    const oss =
+      channel === "finance"
+        ? await getAllFinanceOssReportsInternal(ossConfig)
+        : await getAllOssReportsInternal(channel, ossConfig);
     const inOss = oss.find((it) => it.fileName === fileName);
     return inOss ?? null;
   }
@@ -435,7 +506,10 @@ async function toReportDetail(meta: ReportMetaInternal): Promise<ReportDetail | 
 export async function getAllReports(channel: ReportChannel = DEFAULT_CHANNEL): Promise<ReportMeta[]> {
   const ossConfig = await getOssRuntimeConfig(channel);
   if (ossConfig) {
-    const oss = await getAllOssReportsInternal(channel, ossConfig);
+    const oss =
+      channel === "finance"
+        ? await getAllFinanceOssReportsInternal(ossConfig)
+        : await getAllOssReportsInternal(channel, ossConfig);
     return oss.map(toPublicMeta);
   }
 

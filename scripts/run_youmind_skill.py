@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate RSS daily report from a gist feed list (last N hours)."""
+"""Generate RSS daily report from a feed list URL (last N hours)."""
 
 from __future__ import annotations
 
@@ -28,6 +28,13 @@ if str(REPO_ROOT) not in sys.path:
 
 from core import AIConfig, GeminiAPI
 from core.api import build_public_oss_url, load_oss_config, upload_json_to_oss, upload_markdown_to_oss
+from scripts.wechat_formatter import (
+    build_wechat_output_path,
+    extract_first_h1,
+    markdown_to_wechat_html,
+    markdown_to_wechat_text,
+    save_wechat_output,
+)
 
 DEFAULT_GIST_URL = "https://gist.github.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b"
 USER_AGENT = "Mozilla/5.0 (compatible; KarpathyRSSBot/1.0; +https://github.com)"
@@ -83,7 +90,7 @@ def parse_args() -> argparse.Namespace:
             for k in ("access_key_id", "access_key_secret", "bucket_name", "endpoint")
         )
 
-    parser = argparse.ArgumentParser(description="Fetch feed items from gist and generate daily report with Gemini.")
+    parser = argparse.ArgumentParser(description="Fetch feed items from a feed list URL and generate daily report.")
     parser.add_argument("--prompt-file", type=Path, default=default_prompt)
     parser.add_argument(
         "--api-key-file",
@@ -91,7 +98,11 @@ def parse_args() -> argparse.Namespace:
         default=default_api_key,
         help="Gemini API key file fallback. Env first: GEMINI_API_KEY / GOOGLE_API_KEY.",
     )
-    parser.add_argument("--gist-url", default=DEFAULT_GIST_URL)
+    parser.add_argument(
+        "--gist-url",
+        default=DEFAULT_GIST_URL,
+        help="Feed list URL. Supports GitHub Gist links and normal webpages containing feed URLs.",
+    )
     parser.add_argument(
         "--report-name",
         default=DEFAULT_REPORT_NAME,
@@ -117,7 +128,7 @@ def parse_args() -> argparse.Namespace:
         "--max-feeds",
         type=int,
         default=92,
-        help="Max feed URLs loaded from gist (default 92).",
+        help="Max feed URLs extracted from feed list URL (default 92).",
     )
     parser.add_argument(
         "--max-per-source",
@@ -131,11 +142,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="gemini-2.5-flash")
     parser.add_argument("--input", help="Supplementary instruction text.")
     parser.add_argument("--input-file", type=Path, help="Supplementary instruction file.")
+    parser.add_argument(
+        "--feed-list-file",
+        type=Path,
+        help="Read feed URLs from a local text/markdown file instead of fetching --gist-url.",
+    )
     parser.add_argument("--save", type=Path, help="Save report markdown to this path.")
     parser.add_argument(
         "--save-wechat",
         type=Path,
-        help="Save WeChat-friendly version to this path.",
+        help="Save WeChat-friendly text version to this path.",
+    )
+    parser.add_argument(
+        "--save-wechat-html",
+        type=Path,
+        help="Save WeChat-friendly HTML version to this path.",
     )
     parser.add_argument(
         "--output-dir",
@@ -151,7 +172,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-wechat",
         action="store_true",
-        help="Do not generate WeChat-format output file.",
+        help="Do not generate WeChat-format text output file.",
+    )
+    parser.add_argument(
+        "--no-wechat-html",
+        action="store_true",
+        help="Do not generate WeChat-format HTML output file.",
     )
     parser.add_argument(
         "--upload-oss",
@@ -300,25 +326,30 @@ def fetch_gist_content(gist_url: str, timeout: int = 20) -> str:
         resp.raise_for_status()
         return resp.text
 
-    gist_id = _extract_gist_id(gist_url)
-    api_url = f"https://api.github.com/gists/{gist_id}"
-    resp = requests.get(api_url, headers=headers, timeout=timeout)
+    if "gist.github.com" in gist_url:
+        gist_id = _extract_gist_id(gist_url)
+        api_url = f"https://api.github.com/gists/{gist_id}"
+        resp = requests.get(api_url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        payload = resp.json()
+
+        files = payload.get("files", {})
+        if not files:
+            raise RuntimeError("No files found in gist payload.")
+
+        chunks: list[str] = []
+        for name in sorted(files.keys()):
+            content = files[name].get("content", "")
+            if content:
+                chunks.append(content)
+
+        if not chunks:
+            raise RuntimeError("Gist files found but all file content is empty.")
+        return "\n\n".join(chunks)
+
+    resp = requests.get(gist_url, headers={"User-Agent": USER_AGENT}, timeout=timeout)
     resp.raise_for_status()
-    payload = resp.json()
-
-    files = payload.get("files", {})
-    if not files:
-        raise RuntimeError("No files found in gist payload.")
-
-    chunks: list[str] = []
-    for name in sorted(files.keys()):
-        content = files[name].get("content", "")
-        if content:
-            chunks.append(content)
-
-    if not chunks:
-        raise RuntimeError("Gist files found but all file content is empty.")
-    return "\n\n".join(chunks)
+    return resp.text
 
 
 def _domain(url: str) -> str:
@@ -703,7 +734,7 @@ def response_to_text(response: Any) -> str:
     return merged
 
 
-def postprocess_report(report: str, gist_url: str) -> str:
+def postprocess_report(report: str, gist_url: str, report_name: str) -> str:
     text = report.strip()
 
     # Models sometimes wrap markdown in code fences; unwrap for direct publishing.
@@ -722,6 +753,29 @@ def postprocess_report(report: str, gist_url: str) -> str:
         "https://youmind.com/rss/pack/andrej-karpathy-curated-rss",
         gist_url,
     )
+
+    clean_report_name = (report_name or "").strip()
+    summary_line_pattern = r"(?m)^>\s*.+?\|\s*共\s*([^\n]*?)\s*条更新\s*$"
+    summary_match = re.search(summary_line_pattern, text)
+    if summary_match:
+        # Drop any model preamble before the summary line.
+        text = text[summary_match.start() :].lstrip()
+
+    if clean_report_name:
+        # Force the leading summary quote line to use the current report name.
+        text, replaced = re.subn(
+            summary_line_pattern,
+            lambda m: f"> {clean_report_name} | 共 {m.group(1).strip()} 条更新",
+            text,
+            count=1,
+        )
+        if replaced == 0:
+            guessed_count = extractItemCount(text)
+            if guessed_count > 0:
+                text = f"> {clean_report_name} | 共 {guessed_count} 条更新\n\n{text}".strip()
+            else:
+                text = f"> {clean_report_name} | 共 N 条更新\n\n{text}".strip()
+
     # Remove footer signature/source line if the model still outputs it.
     text = re.sub(
         r"(?mi)^\*?\s*本日报由\s*AI\s*自动生成\s*\|\s*数据源：.*$",
@@ -861,73 +915,6 @@ def upsert_oss_index_items(
     return out
 
 
-def markdown_to_wechat_text(markdown_text: str) -> str:
-    text = markdown_text.replace("\r\n", "\n").strip()
-
-    text = re.sub(r"\[\[([^\]]+)\]\]\((https?://[^)]+)\)", r"\1（\2）", text)
-
-    def _link_repl(match: re.Match[str]) -> str:
-        return f"{match.group(1)}（{match.group(2)}）"
-
-    text = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", _link_repl, text)
-    text = re.sub(r"`([^`]+)`", r"\1", text)
-    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
-    text = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"\1", text)
-
-    out_lines: list[str] = []
-    for raw in text.split("\n"):
-        line = raw.rstrip()
-        stripped = line.strip()
-        if not stripped:
-            out_lines.append("")
-            continue
-
-        if stripped == "---":
-            out_lines.append("──────────")
-            continue
-
-        if stripped.startswith(">"):
-            out_lines.append(stripped.lstrip(">").strip())
-            continue
-
-        if stripped.startswith("#"):
-            title = stripped.lstrip("#").strip()
-            out_lines.append(f"【{title}】")
-            continue
-
-        if stripped.startswith("- "):
-            out_lines.append(f"• {stripped[2:].strip()}")
-            continue
-
-        out_lines.append(stripped)
-
-    wechat_text = "\n".join(out_lines)
-    wechat_text = re.sub(r"\n{3,}", "\n\n", wechat_text).strip()
-    return wechat_text
-
-
-def save_wechat_report(
-    default_dir: Path,
-    date_label: str,
-    report_name: str,
-    wechat_text: str,
-    explicit_path: Path | None,
-    md_path: Path | None,
-) -> Path:
-    if explicit_path is not None:
-        path = explicit_path
-    elif md_path is not None:
-        suffix = md_path.suffix if md_path.suffix else ".txt"
-        path = md_path.with_name(f"{md_path.stem} - 公众号格式{suffix}")
-    else:
-        clean_report_name = (report_name or "").strip() or DEFAULT_REPORT_NAME
-        path = default_dir / f"{date_label} - {clean_report_name} - 公众号格式.md"
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(wechat_text.rstrip() + "\n", encoding="utf-8")
-    return path
-
-
 def main() -> int:
     args = parse_args()
 
@@ -935,9 +922,13 @@ def main() -> int:
         log_stage("正在加载提示词与输入参数")
         prompt_template = read_text(args.prompt_file, "Prompt file")
         user_input = resolve_user_input(args)
-        log_stage("正在读取 gist feed 列表")
-        gist_content = fetch_gist_content(args.gist_url)
-        feed_urls = parse_feed_urls_from_gist(gist_content, args.max_feeds)
+        if args.feed_list_file:
+            log_stage("正在读取本地 feed 列表文件")
+            feed_source_content = read_text(args.feed_list_file, "Feed list file")
+        else:
+            log_stage("正在读取 feed 列表来源")
+            feed_source_content = fetch_gist_content(args.gist_url)
+        feed_urls = parse_feed_urls_from_gist(feed_source_content, args.max_feeds)
         log_stage(f"已获取 {len(feed_urls)} 个候选信源，开始筛选过去 {args.window_hours} 小时内容")
         entries, stats = select_recent_entries(
             feed_urls=feed_urls,
@@ -1010,7 +1001,7 @@ def main() -> int:
         gemini = GeminiAPI(config)
         response = gemini.generate_content(contents=full_prompt, model=args.model)
         report = response_to_text(response)
-        report = postprocess_report(report, args.gist_url)
+        report = postprocess_report(report, args.gist_url, args.report_name)
     except Exception as exc:  # noqa: BLE001
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -1099,15 +1090,36 @@ def main() -> int:
         if args.save_wechat is not None or not args.no_save:
             log_stage("正在保存公众号格式文件")
             wechat_text = markdown_to_wechat_text(report)
-            wechat_out_path = save_wechat_report(
+            wechat_text_ext = md_out_path.suffix if md_out_path is not None and md_out_path.suffix else ".md"
+            wechat_path = build_wechat_output_path(
                 default_dir=args.output_dir,
                 date_label=args.date,
                 report_name=args.report_name,
-                wechat_text=wechat_text,
                 explicit_path=args.save_wechat,
                 md_path=md_out_path,
+                extension=wechat_text_ext,
             )
+            wechat_out_path = save_wechat_output(wechat_path, wechat_text)
             print(f"[Saved WeChat] {wechat_out_path}", file=sys.stderr)
+
+    if not args.no_wechat_html:
+        if args.save_wechat_html is not None or not args.no_save:
+            log_stage("正在保存公众号 HTML 文件")
+            wechat_html = markdown_to_wechat_html(
+                report,
+                title=extract_first_h1(report),
+                style_variant="default",
+            )
+            wechat_html_path = build_wechat_output_path(
+                default_dir=args.output_dir,
+                date_label=args.date,
+                report_name=args.report_name,
+                explicit_path=args.save_wechat_html,
+                md_path=md_out_path,
+                extension=".html",
+            )
+            wechat_html_out_path = save_wechat_output(wechat_html_path, wechat_html)
+            print(f"[Saved WeChat HTML] {wechat_html_out_path}", file=sys.stderr)
 
     print(report)
     return 0

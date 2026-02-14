@@ -1,0 +1,16 @@
+https://www.business-standard.com/rss/latest.rss
+https://gfmag.com/feed/
+https://www.worldfinance.com/feed
+https://www.financeasia.com/rss/latest
+http://www.globaltimes.cn/rss/outbrain.xml
+http://www.chinadaily.com.cn/rss/world_rss.xml
+http://thehill.com/rss/syndicator/19110
+https://www.rt.com/rss/
+http://www.telegraph.co.uk/rss.xml
+http://www.independent.co.uk/rss
+https://asia.nikkei.com/rss/feed/nar
+http://rss.dw.com/xml/rss-en-all
+http://www.economist.com/sections/economics/rss.xml
+http://www.scmp.com/rss/91/feed
+http://feeds.washingtonpost.com/rss/business
+https://www.moneyweb.co.za/feed

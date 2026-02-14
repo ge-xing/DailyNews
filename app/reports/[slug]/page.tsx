@@ -9,10 +9,12 @@ export const revalidate = 0;
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; category?: string }>;
 };
 
 function normalizeReportTab(tab?: string): ReportChannel | undefined {
+  if (tab === "daily") return "finance";
+  if (tab === "finance") return "finance";
   if (tab === "crypto") return "crypto";
   if (tab === "ai") return "ai";
   return undefined;
@@ -43,8 +45,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  const backTab = preferredChannel ?? report.channel;
-  const themeLabel = report.channel === "crypto" ? "Crypto RSS" : "Karpathy RSS";
+  const fromDailyTab = query.tab === "daily" || query.tab === "finance";
+  const backHref =
+    fromDailyTab
+      ? query.category
+        ? `/?tab=daily&category=${encodeURIComponent(query.category)}`
+        : "/?tab=daily"
+      : `/?tab=${preferredChannel ?? report.channel}`;
+  const themeLabel =
+    report.channel === "finance" ? "Financial RSS" : report.channel === "crypto" ? "Crypto RSS" : "Karpathy RSS";
 
   return (
     <main className="shell">
@@ -53,7 +62,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       <div className="container detail-layout">
         <div className="detail-top">
           <div className="detail-nav">
-            <Link href={`/?tab=${backTab}`} className="back-link">
+            <Link href={backHref} className="back-link">
               返回首页
             </Link>
             <p className="detail-date">{report.date}</p>

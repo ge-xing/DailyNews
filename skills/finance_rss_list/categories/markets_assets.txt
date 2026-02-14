@@ -1,0 +1,15 @@
+https://www.ft.com/rss/home
+https://seekingalpha.com/feed.xml
+https://www.fool.com/a/feeds/partner/googlechromefollow?apikey=5e092c1f-c5f9-4428-9219-908a47d2e2de
+https://www.thestreet.com/.rss/full/
+https://www.marketbeat.com/feed/
+https://moneyweek.com/feed/all
+http://rss.cnn.com/rss/money_topstories.rss
+https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms
+https://www.cnbc.com/id/100003114/device/rss/rss.html
+https://www.investing.com/rss/news.rss
+https://seekingalpha.com/market_currents.xml
+http://feeds.marketwatch.com/marketwatch/topstories/
+https://www.ft.com/?format=rss
+http://www.valuewalk.com/feed/
+https://stocknewsjournal.com/feed/

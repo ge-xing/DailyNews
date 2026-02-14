@@ -6,10 +6,27 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type HomeProps = {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; category?: string }>;
 };
 
-type TabKey = ReportChannel | "github";
+type TabKey = "ai" | "crypto" | "github" | "daily";
+
+type DailyCategoryKey =
+  | "macro_policy"
+  | "markets_assets"
+  | "companies_industry"
+  | "global_general_news"
+  | "tech_business"
+  | "crypto_digital_assets";
+
+const DAILY_CATEGORY_ITEMS: Array<{ key: DailyCategoryKey; label: string; tokens: string[] }> = [
+  { key: "macro_policy", label: "宏观政策", tokens: ["宏观政策", "macro_policy"] },
+  { key: "markets_assets", label: "市场资产", tokens: ["市场资产", "markets_assets"] },
+  { key: "companies_industry", label: "公司产业", tokens: ["公司产业", "companies_industry"] },
+  { key: "global_general_news", label: "全球要闻", tokens: ["全球要闻", "global_general_news"] },
+  { key: "tech_business", label: "科技商业", tokens: ["科技商业", "tech_business"] },
+  { key: "crypto_digital_assets", label: "加密资产", tokens: ["加密资产", "crypto_digital_assets"] },
+];
 
 type ReportTabConfig = {
   tabLabel: string;
@@ -21,8 +38,25 @@ type ReportTabConfig = {
 
 function normalizeTab(tab?: string): TabKey {
   if (tab === "github") return "github";
+  if (tab === "daily") return "daily";
+  if (tab === "finance") return "daily";
   if (tab === "crypto") return "crypto";
   return "ai";
+}
+
+function normalizeDailyCategory(category?: string): DailyCategoryKey | undefined {
+  if (!category) return undefined;
+  return DAILY_CATEGORY_ITEMS.some((it) => it.key === category) ? (category as DailyCategoryKey) : undefined;
+}
+
+function resolveDailyCategory(report: { title: string; fileName: string }): DailyCategoryKey | undefined {
+  const haystack = `${report.title} ${report.fileName}`;
+  for (const item of DAILY_CATEGORY_ITEMS) {
+    if (item.tokens.some((token) => haystack.includes(token))) {
+      return item.key;
+    }
+  }
+  return undefined;
 }
 
 function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
@@ -48,9 +82,15 @@ function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
-  const activeReportChannel: ReportChannel | null = activeTab === "github" ? null : activeTab;
+  const activeReportChannel: ReportChannel | null =
+    activeTab === "github" ? null : activeTab === "daily" ? "finance" : activeTab;
+  const selectedDailyCategory = activeTab === "daily" ? normalizeDailyCategory(params.category) : undefined;
 
-  const reports = activeReportChannel ? await getAllReports(activeReportChannel) : [];
+  const allReports = activeReportChannel ? await getAllReports(activeReportChannel) : [];
+  const reports =
+    activeTab === "daily" && selectedDailyCategory
+      ? allReports.filter((report) => resolveDailyCategory(report) === selectedDailyCategory)
+      : allReports;
   const trending = activeTab === "github" ? await getGithubTrending(20) : null;
 
   const latest = reports[0];
@@ -59,7 +99,39 @@ export default async function Home({ searchParams }: HomeProps) {
   const latestThemes = latest?.themeCount ?? 0;
   const fetchedAt = trending?.fetchedAt ? new Date(trending.fetchedAt).toLocaleString("zh-CN", { hour12: false }) : "";
 
-  const reportTabConfig = activeReportChannel ? getReportTabConfig(activeReportChannel) : null;
+  const reportTabConfig =
+    activeTab === "daily"
+      ? {
+          tabLabel: "每日资讯",
+          heroKicker: "Daily Information",
+          heroTitle: "每日资讯",
+          heroGlow: " Category Brief",
+          heroCopy: "按分类查看财经资讯日报；每类单独生成并归档，支持快速切换与阅读。",
+        }
+      : activeReportChannel
+        ? getReportTabConfig(activeReportChannel)
+        : null;
+
+  const dailyCategoryCounts = new Map<DailyCategoryKey, number>();
+  for (const item of DAILY_CATEGORY_ITEMS) {
+    dailyCategoryCounts.set(item.key, 0);
+  }
+  if (activeTab === "daily") {
+    for (const report of allReports) {
+      const key = resolveDailyCategory(report);
+      if (!key) continue;
+      dailyCategoryCounts.set(key, (dailyCategoryCounts.get(key) || 0) + 1);
+    }
+  }
+
+  const reportLinkQuery =
+    activeTab === "daily"
+      ? selectedDailyCategory
+        ? `?tab=daily&category=${encodeURIComponent(selectedDailyCategory)}`
+        : "?tab=daily"
+      : activeReportChannel
+        ? `?tab=${activeReportChannel}`
+        : "";
 
   return (
     <main className="shell">
@@ -75,11 +147,14 @@ export default async function Home({ searchParams }: HomeProps) {
             <Link href="/?tab=crypto" className={`side-tab ${activeTab === "crypto" ? "is-active" : ""}`}>
               币圈日报
             </Link>
+            <Link href="/?tab=daily" className={`side-tab ${activeTab === "daily" ? "is-active" : ""}`}>
+              每日资讯
+            </Link>
             <Link href="/?tab=github" className={`side-tab ${activeTab === "github" ? "is-active" : ""}`}>
               Github趋势
             </Link>
           </nav>
-          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报与 Github 热门仓库。</p>
+          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报、每日资讯与 Github 热门仓库。</p>
         </aside>
 
         <div className="main-panel">
@@ -95,7 +170,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   <p className="hero-copy">{reportTabConfig.heroCopy}</p>
                   <div className="hero-actions">
                     {latest ? (
-                      <Link className="btn btn-primary" href={`/reports/${latest.slug}?tab=${activeReportChannel}`}>
+                      <Link className="btn btn-primary" href={`/reports/${latest.slug}${reportLinkQuery}`}>
                         阅读最新一期
                       </Link>
                     ) : null}
@@ -123,6 +198,23 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
               </section>
 
+              {activeTab === "daily" ? (
+                <section className="category-strip" aria-label="每日资讯分类">
+                  <Link href="/?tab=daily" className={`category-pill ${!selectedDailyCategory ? "is-active" : ""}`}>
+                    全部 ({allReports.length})
+                  </Link>
+                  {DAILY_CATEGORY_ITEMS.map((item) => (
+                    <Link
+                      key={item.key}
+                      href={`/?tab=daily&category=${encodeURIComponent(item.key)}`}
+                      className={`category-pill ${selectedDailyCategory === item.key ? "is-active" : ""}`}
+                    >
+                      {item.label} ({dailyCategoryCounts.get(item.key) || 0})
+                    </Link>
+                  ))}
+                </section>
+              ) : null}
+
               <section className="grid-head">
                 <h2>{reportTabConfig.tabLabel}归档</h2>
                 <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
@@ -144,7 +236,7 @@ export default async function Home({ searchParams }: HomeProps) {
                         <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
                         <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
                       </div>
-                      <Link className="card-link" href={`/reports/${report.slug}?tab=${report.channel}`}>
+                      <Link className="card-link" href={`/reports/${report.slug}${reportLinkQuery}`}>
                         打开全文
                       </Link>
                     </article>

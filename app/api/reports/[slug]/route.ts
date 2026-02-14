@@ -41,9 +41,10 @@ async function deleteLocalArtifacts(fileName: string) {
   for (const outputsDir of outputDirs) {
     const reportPath = path.join(outputsDir, safeName);
     const wechatPath = path.join(outputsDir, `${stem} - 公众号格式${ext || ".md"}`);
+    const wechatHtmlPath = path.join(outputsDir, `${stem} - 公众号格式.html`);
     const materialsDir = path.join(outputsDir, `${stem}素材`);
 
-    const targets = [reportPath, wechatPath];
+    const targets = [reportPath, wechatPath, wechatHtmlPath];
     for (const target of targets) {
       try {
         await fs.rm(target, { force: true });

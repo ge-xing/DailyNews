@@ -1,0 +1,50 @@
+rank,name,rss_url,website_url,status,notes
+1,Financial Times,https://www.ft.com/rss/home,https://www.ft.com,extracted,direct_rss_link
+2,Fortune,https://fortune.com/feed/fortune-feeds/?id=3230629,https://fortune.com,extracted,direct_rss_link
+3,Seeking Alpha,https://seekingalpha.com/feed.xml,https://seekingalpha.com,extracted,direct_rss_link
+4,Motley Fool,https://www.fool.com/a/feeds/partner/googlechromefollow?apikey=5e092c1f-c5f9-4428-9219-908a47d2e2de,https://www.fool.com,extracted,direct_rss_link
+5,Nasdaq,https://www.nasdaq.com/feed/nasdaq-original/rss.xml,https://www.nasdaq.com,extracted,direct_rss_link
+6,Business Standard,https://www.business-standard.com/rss/latest.rss,https://www.business-standard.com,extracted,direct_rss_link
+7,TheStreet,https://www.thestreet.com/.rss/full/,https://www.thestreet.com,extracted,direct_rss_link
+8,Benzinga,https://feeds.benzinga.com/benzinga,https://www.benzinga.com,extracted,direct_rss_link
+9,MarketBeat,https://www.marketbeat.com/feed/,https://www.marketbeat.com,extracted,direct_rss_link
+10,Money,https://money.com/money/feed/,https://money.com,extracted,direct_rss_link
+11,Global Finance Magazine,https://gfmag.com/feed/,https://gfmag.com,extracted,direct_rss_link
+12,Financial Samurai,https://www.financialsamurai.com/feed/,https://www.financialsamurai.com,extracted,direct_rss_link
+13,MoneyWeek,https://moneyweek.com/feed/all,https://moneyweek.com,extracted,direct_rss_link
+14,Finance Monthly,https://www.finance-monthly.com/feed/,https://www.finance-monthly.com,extracted,direct_rss_link
+15,The European Financial Review,https://www.europeanfinancialreview.com/feed/,https://www.europeanfinancialreview.com,extracted,direct_rss_link
+16,Money Morning,https://moneymorning.com/feed/,https://moneymorning.com,extracted,direct_rss_link
+17,Dealbreaker,https://dealbreaker.com/.rss/full/,https://dealbreaker.com,extracted,direct_rss_link
+18,World Finance,https://www.worldfinance.com/feed,https://www.worldfinance.com,extracted,direct_rss_link
+19,Finews,https://www.finews.com/news/english-news?format=feed&type=rss,https://www.finews.com/news/english-news,extracted,direct_rss_link
+20,FinanceAsia,https://www.financeasia.com/rss/latest,https://www.financeasia.com,extracted,direct_rss_link
+21,BankPediaa,https://bankpediaa.com/feed/,https://bankpediaa.com,extracted,direct_rss_link
+22,CNBC International,,https://www.cnbc.com/world,unresolved,no_rss_link_exposed_on_listing
+23,iShook Finance,,https://ishookfinance.com,unresolved,no_rss_link_exposed_on_listing
+24,Markets Insider,,https://markets.businessinsider.com,unresolved,no_rss_link_exposed_on_listing
+25,Barchart,,https://www.barchart.com,unresolved,no_rss_link_exposed_on_listing
+26,Financial Review,,https://www.afr.com,unresolved,no_rss_link_exposed_on_listing
+27,Economy Watch,,https://www.economywatch.com,unresolved,no_rss_link_exposed_on_listing
+28,CFI.co,https://cfi.co/feed/,https://cfi.co,extracted,from_feedspot_link_target
+29,Google Finance,,https://www.google.com/finance,unresolved,no_rss_link_exposed_on_listing
+30,Forbes - Finance,,https://www.forbes.com,unresolved,no_rss_link_exposed_on_listing
+31,Financial Express,https://www.financialexpress.com/feed/,https://www.financialexpress.com,extracted,from_feedspot_link_target
+32,MarketWatch,,https://www.marketwatch.com,unresolved,no_rss_link_exposed_on_listing
+33,The Wall Street Journal,,https://www.wsj.com,unresolved,no_rss_link_exposed_on_listing
+34,Financial News,,https://www.fnlondon.com,unresolved,no_rss_link_exposed_on_listing
+35,Bloomberg,,https://www.bloomberg.com,unresolved,no_rss_link_exposed_on_listing
+36,Barron's,,https://www.barrons.com,unresolved,no_rss_link_exposed_on_listing
+37,Yahoo Finance,,https://finance.yahoo.com,unresolved,no_rss_link_exposed_on_listing
+38,Investing.com,,https://www.investing.com,unresolved,no_rss_link_exposed_on_listing
+39,Investopedia - Financial News,,https://www.investopedia.com,unresolved,no_rss_link_exposed_on_listing
+40,US News Money,,https://money.usnews.com,unresolved,no_rss_link_exposed_on_listing
+41,NerdWallet,,https://www.nerdwallet.com/news,unresolved,no_rss_link_exposed_on_listing
+42,The Economist - Finance and economics,,https://www.economist.com,unresolved,no_rss_link_exposed_on_listing
+43,Newsmax - Finance,,https://www.newsmax.com/finance,unresolved,no_rss_link_exposed_on_listing
+44,Bankrate - News,,https://www.bankrate.com/news,unresolved,no_rss_link_exposed_on_listing
+45,Morningstar,,https://www.morningstar.com,unresolved,no_rss_link_exposed_on_listing
+46,Kiplinger,,https://www.kiplinger.com,unresolved,no_rss_link_exposed_on_listing
+47,International Business Times,,https://www.ibtimes.com,unresolved,no_rss_link_exposed_on_listing
+48,Policygenius,,https://www.policygenius.com/news,unresolved,no_rss_link_exposed_on_listing
+49,Investor's Business Daily,,https://www.investors.com,unresolved,no_rss_link_exposed_on_listing

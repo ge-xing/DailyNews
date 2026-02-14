@@ -1,0 +1,292 @@
+[
+  {
+    "url": "http://indianexpress.com/section/world/feed/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: http://indianexpress.com/section/world/feed/"
+  },
+  {
+    "url": "https://www.yahoo.com/news/rss/finance",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.yahoo.com/news/rss/finance"
+  },
+  {
+    "url": "http://news.com.au/feed",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: http://www.news.com.au/feed"
+  },
+  {
+    "url": "https://motherboard.vice.com/motherboard.vice.com/en_us/rss",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='motherboard.vice.com', port=443): Max retries exceeded with url: /motherboard.vice.com/en_us/rss (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))"
+  },
+  {
+    "url": "https://www.forbes.com/real-time/feed2/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.forbes.com/real-time/feed2/"
+  },
+  {
+    "url": "https://gadgets.ndtv.com/rss/feeds",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://gadgets.ndtv.com/rss/feeds"
+  },
+  {
+    "url": "https://gizmodo.com/rss",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://gizmodo.com/rss"
+  },
+  {
+    "url": "http://feeds.reuters.com/reuters/topNews",
+    "ok": false,
+    "error": "502 Server Error: Bad Gateway for url: http://feeds.reuters.com/reuters/topNews"
+  },
+  {
+    "url": "http://rssfeeds.usatoday.com/usatoday-NewsTopStories",
+    "ok": false,
+    "error": "Discovered feed URL is not XML: https://cm.usatoday.com/site-feedback/?platform=Tangent-Desktop&url=https%3A%2F%2Fwww.usatoday.com%2F&marketName=usatoday&cta=Right-Rail"
+  },
+  {
+    "url": "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedName=rss_headline",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline"
+  },
+  {
+    "url": "http://www.wsj.com/xml/rss/3_7031.xml",
+    "ok": false,
+    "error": "401 Client Error: HTTP Forbidden for url: https://www.wsj.com/news/rss-news-and-feeds"
+  },
+  {
+    "url": "http://www.cbc.ca/cmlink/1.1244475",
+    "ok": false,
+    "error": "HTTPConnectionPool(host='127.0.0.1', port=7890): Read timed out. (read timeout=12)"
+  },
+  {
+    "url": "https://www.usnews.com/rss/money",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='www.usnews.com', port=443): Read timed out. (read timeout=12)"
+  },
+  {
+    "url": "https://bracethehammer.sbnation.com/rss/front-page/index.xml",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://bracethehammer.sbnation.com/rss/front-page/index.xml"
+  },
+  {
+    "url": "http://feeds.smh.com.au/rssheadlines/top.xml",
+    "ok": false,
+    "error": "502 Server Error: Bad Gateway for url: http://feeds.smh.com.au/rssheadlines/top.xml"
+  },
+  {
+    "url": "http://www.firstpost.com/feed",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.firstpost.com/feed/"
+  },
+  {
+    "url": "https://qz.com/feed/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://qz.com/feed/"
+  },
+  {
+    "url": "http://articlefeeds.nasdaq.com/nasdaq/categories?category=Investing+Ideas",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://www.ccn.com/feed/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.ccn.com/feed/"
+  },
+  {
+    "url": "https://live.engadget.com/rss.xml",
+    "ok": false,
+    "error": "Discovered feed URL is not XML: https://live.engadget.com/rss.xml"
+  },
+  {
+    "url": "https://www.prnewswire.com/rss/all-news-releases-from-PR-newswire-news.rss",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.prnewswire.com/rss/all-news-releases-from-PR-newswire-news.rss"
+  },
+  {
+    "url": "https://boingboing.net/feed",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://boingboing.net/feed"
+  },
+  {
+    "url": "https://www.space.com/g00/3_c-7x78x78x78.tqbdf.dpn_/c-7NPSFQIFVT34x24iuuqtx3ax2fx2fx78x78x78.tqbdf.dpnx2fipnfx2fgffex2ftjuf.ynm_$/$/$/$?i10c.ua=1",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.space.com/g00/3_c-7x78x78x78.tqbdf.dpn_/c-7NPSFQIFVT34x24iuuqtx3ax2fx2fx78x78x78.tqbdf.dpnx2fipnfx2fgffex2ftjuf.ynm_$/$/$/$?i10c.ua=1"
+  },
+  {
+    "url": "https://rss.dailyfx.com/feeds/all",
+    "ok": false,
+    "error": "('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"
+  },
+  {
+    "url": "http://feeds.bet.com/AllBetcom",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://www.dailytelegraph.com.au/feed",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.dailytelegraph.com.au/feed"
+  },
+  {
+    "url": "https://nextshark.com/feed/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://nextshark.com/feed/"
+  },
+  {
+    "url": "http://www.arabianbusiness.com/feed/feed.xml",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: http://www.arabianbusiness.com/feed/feed.xml"
+  },
+  {
+    "url": "http://www.digitaljournal.com/rss/?feed=latest_news",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: http://www.digitaljournal.com/rss/?feed=latest_news"
+  },
+  {
+    "url": "https://www.seccountry.com/feed",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.ajc.com/uga-stories-from-dawgnation/"
+  },
+  {
+    "url": "http://www.roanoke.com/search/?f=rss&amp;t=article&amp;l=50&amp;s=start_time&amp;sd=desc&amp;k[]=%23topstory",
+    "ok": false,
+    "error": "429 Client Error: Too Many Requests for url: http://www.roanoke.com/search/?f=rss&amp;t=article&amp;l=50&amp;s=start_time&amp;sd=desc&amp;k%5B%5D=%23topstory"
+  },
+  {
+    "url": "https://www.local10.com/feeds/rssFeed/feedServlet?obfType=GMG_RSS_APP&siteId=800006&categoryId=80041&nbRows=10",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.local10.com/feeds/rssFeed/feedServlet/?obfType=GMG_RSS_APP&siteId=800006&categoryId=80041&nbRows=10"
+  },
+  {
+    "url": "https://www.profitconfidential.com/feed/",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "http://www.streetinsider.com/freefeed.php",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://www.theglobeandmail.com/?service=rss&feed=topstories",
+    "ok": false,
+    "error": "Discovered feed URL is not XML: https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9UR2NsWDk4cA%3D%3D"
+  },
+  {
+    "url": "https://www.thechronicle.com.au/feeds/rss/homepage/",
+    "ok": false,
+    "error": "403 Client Error: Forbidden for url: https://www.thechronicle.com.au/feeds/rss/homepage/"
+  },
+  {
+    "url": "https://www.influencive.com/feed/",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='www.influencive.com', port=443): Max retries exceeded with url: /feed/ (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))"
+  },
+  {
+    "url": "http://www.geelongadvertiser.com.au/rss",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://stocknewsgazette.com/feed/",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://www.stocknewsgazette.com/feed/",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://71republic.com/feed/",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='71republic.com', port=443): Max retries exceeded with url: /feed/ (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for '71republic.com'. (_ssl.c:1000)\")))"
+  },
+  {
+    "url": "http://feeds.feedburner.com/the-columbian-headlines",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.columbian.com/news/feed/"
+  },
+  {
+    "url": "https://cryptovest.com/feed",
+    "ok": false,
+    "error": "Discovered feed URL is not XML: https://cryptovest.com/feed/"
+  },
+  {
+    "url": "http://weeklyhub.com/feed",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://news4c.com/feed/",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "http://dailytelescope.com/feed",
+    "ok": false,
+    "error": "500 Server Error: Internal Server Error for url: https://dailytelescope.com/feed"
+  },
+  {
+    "url": "https://finnewsdaily.com/feed",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "http://cryptocrimson.com/feed",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "http://www.milforddailynews.com/rss",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://www.milforddailynews.com/rss/"
+  },
+  {
+    "url": "http://ethereumworldnews.com/feed/",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='ethereumworldnews.com', port=443): Read timed out. (read timeout=12)"
+  },
+  {
+    "url": "http://www.macon.com/?widgetName=rssfeed&widgetContentId=25844086&getXmlFeed=true",
+    "ok": false,
+    "error": "HTTPConnectionPool(host='127.0.0.1', port=7890): Read timed out. (read timeout=12)"
+  },
+  {
+    "url": "https://www.techllog.com/feed/",
+    "ok": false,
+    "error": "Not a feed XML and no alternate feed discovered"
+  },
+  {
+    "url": "https://flintdaily.com/feed/",
+    "ok": false,
+    "error": "500 Server Error: Internal Server Error for url: https://www.bizblare.com/feed/"
+  },
+  {
+    "url": "http://www.cspdailynews.com/rss",
+    "ok": false,
+    "error": "404 Client Error: Not Found for url: https://informaconnect.com/rss/"
+  },
+  {
+    "url": "https://www.bitsonline.com/feed/",
+    "ok": false,
+    "error": "Exceeded 30 redirects."
+  },
+  {
+    "url": "http://www.bankingtech.com/feed",
+    "ok": false,
+    "error": "HTTPConnectionPool(host='127.0.0.1', port=7890): Read timed out. (read timeout=12)"
+  },
+  {
+    "url": "https://etfdailynews.com/feed/",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='etfdailynews.com', port=443): Max retries exceeded with url: /feed/ (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))"
+  },
+  {
+    "url": "https://solarindustrymag.com/feed",
+    "ok": false,
+    "error": "HTTPSConnectionPool(host='solarindustrymag.com', port=443): Read timed out. (read timeout=12)"
+  }
+]
