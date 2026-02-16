@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllReports, type ReportChannel } from "@/lib/reports";
 import { getGithubTrending } from "@/lib/trending";
+import { HotspotYoutubeSearch } from "@/components/hotspot-youtube-search";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,7 +10,7 @@ type HomeProps = {
   searchParams: Promise<{ tab?: string; category?: string }>;
 };
 
-type TabKey = "ai" | "crypto" | "github" | "daily";
+type TabKey = "ai" | "crypto" | "github" | "daily" | "hot";
 
 type DailyCategoryKey =
   | "macro_policy"
@@ -37,6 +38,7 @@ type ReportTabConfig = {
 };
 
 function normalizeTab(tab?: string): TabKey {
+  if (tab === "hot") return "hot";
   if (tab === "github") return "github";
   if (tab === "daily") return "daily";
   if (tab === "finance") return "daily";
@@ -83,7 +85,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
   const activeReportChannel: ReportChannel | null =
-    activeTab === "github" ? null : activeTab === "daily" ? "finance" : activeTab;
+    activeTab === "daily" ? "finance" : activeTab === "ai" || activeTab === "crypto" ? activeTab : null;
   const selectedDailyCategory = activeTab === "daily" ? normalizeDailyCategory(params.category) : undefined;
 
   const allReports = activeReportChannel ? await getAllReports(activeReportChannel) : [];
@@ -153,12 +155,17 @@ export default async function Home({ searchParams }: HomeProps) {
             <Link href="/?tab=github" className={`side-tab ${activeTab === "github" ? "is-active" : ""}`}>
               Github趋势
             </Link>
+            <Link href="/?tab=hot" className={`side-tab ${activeTab === "hot" ? "is-active" : ""}`}>
+              发现热点
+            </Link>
           </nav>
-          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报、每日资讯与 Github 热门仓库。</p>
+          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报、每日资讯、Github 趋势与发现热点。</p>
         </aside>
 
         <div className="main-panel">
-          {activeReportChannel && reportTabConfig ? (
+          {activeTab === "hot" ? (
+            <HotspotYoutubeSearch />
+          ) : activeReportChannel && reportTabConfig ? (
             <>
               <section className="hero">
                 <div className="hero-main">

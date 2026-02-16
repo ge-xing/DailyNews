@@ -13,6 +13,7 @@ trending_api*
 env.py
 run.sh
 env.sh
+tikhub.txt
 # Distribution / packaging
 node_modules
 .Python
