@@ -49,6 +49,389 @@ a {
   text-decoration: none;
 }
 
+.chronos-home {
+  --paper-bg: #ffffff;
+  --ink-black: #1a1a1a;
+  --border-color: #1a1a1a;
+  --paper-accent: #ffffff;
+  min-height: 100vh;
+  background: var(--paper-bg);
+  color: var(--ink-black);
+  font-family: var(--font-body);
+  position: relative;
+}
+
+.chronos-home::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.chronos-nav-bar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border-color);
+}
+
+.chronos-nav-segment {
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border-color);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-weight: 500;
+  transition: background 0.18s ease;
+}
+
+.chronos-nav-segment:last-child {
+  border-right: none;
+}
+
+.chronos-nav-segment:hover {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.chronos-nav-segment.is-active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.chronos-grid-container {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--border-color);
+  min-height: calc(100vh - 7.2rem);
+}
+
+.chronos-main-content {
+  border-right: 1px solid var(--border-color);
+  padding: 3.5rem 3.2rem 2rem;
+  position: relative;
+  min-height: auto;
+}
+
+.chronos-brand-mark {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  width: 50px;
+  height: 70px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: 2rem;
+  font-style: italic;
+}
+
+.chronos-brand-mark span {
+  position: relative;
+  top: -2px;
+}
+
+.chronos-brand-mark::after {
+  content: "";
+  position: absolute;
+  bottom: 8px;
+  width: 4px;
+  height: 4px;
+  background: var(--ink-black);
+  border-radius: 50%;
+}
+
+.chronos-date-badge {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chronos-hero-image-container {
+  width: min(100%, 330px);
+  height: 400px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  overflow: hidden;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chronos-hero-image-container:hover {
+  transform: scale(1.02);
+}
+
+.chronos-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.2) contrast(1.08) brightness(0.95);
+  transition: transform 1.2s ease;
+}
+
+.chronos-hero-image-container:hover .chronos-hero-image {
+  transform: scale(1.08);
+}
+
+.chronos-headline-wrapper {
+  margin-top: 0.9rem;
+  width: min(100%, 330px);
+}
+
+.chronos-headline {
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: clamp(1.7rem, 2.2vw, 2.3rem);
+  line-height: 1.07;
+  font-weight: 400;
+}
+
+.chronos-headline span.italic {
+  font-style: italic;
+  font-weight: 300;
+}
+
+.chronos-headline span.upper {
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.045em;
+}
+
+.chronos-article-excerpt {
+  margin-top: 0.8rem;
+  width: min(100%, 330px);
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-style: italic;
+  text-align: left;
+  opacity: 0.72;
+}
+
+.chronos-content-block {
+  margin-top: 0;
+  max-width: 100%;
+  padding-top: 0.2rem;
+  border-top: none;
+}
+
+.chronos-sidebar {
+  padding: 2.4rem 1.3rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1.2rem;
+}
+
+.chronos-right-feature {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.chronos-vertical-meta {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  height: 100%;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: auto;
+}
+
+.chronos-meta-item {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.chronos-meta-item:hover {
+  opacity: 1;
+}
+
+.chronos-footer-bar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border-color);
+}
+
+.chronos-footer-segment {
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border-color);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.chronos-footer-segment:last-child {
+  border-right: none;
+}
+
+.chronos-footer-segment:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Chronos tone for legacy blocks reused inside home page */
+.chronos-home .hero,
+.chronos-home .hero-side,
+.chronos-home .trend-list,
+.chronos-home .report-card,
+.chronos-home .empty-card,
+.chronos-home .hot-video-card {
+  border-color: rgba(26, 26, 26, 0.35);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.chronos-home .hero {
+  padding: 1.1rem;
+}
+
+.chronos-home .hero h1 {
+  color: #141414;
+  font-size: clamp(1.6rem, 4.2vw, 2.8rem);
+  font-family: "Times New Roman", Georgia, serif;
+}
+
+.chronos-home .hero-kicker,
+.chronos-home .hero-copy,
+.chronos-home .hero-metric span,
+.chronos-home .grid-head p,
+.chronos-home .report-excerpt,
+.chronos-home .trend-summary-en {
+  color: #444;
+}
+
+.chronos-home .hero-glow {
+  color: #111;
+  background: none;
+}
+
+.chronos-home .btn-primary {
+  color: #faf9f6;
+  background: #1a1a1a;
+  box-shadow: none;
+}
+
+.chronos-home .category-pill,
+.chronos-home .report-meta span,
+.chronos-home .hero-metric,
+.chronos-home .cmd,
+.chronos-home .hot-search-input {
+  border-color: rgba(26, 26, 26, 0.3);
+  background: #ffffff;
+  color: #222;
+}
+
+.chronos-home .category-pill.is-active,
+.chronos-home .side-tab.is-active {
+  background: #ffffff;
+  color: #111;
+}
+
+.chronos-home .grid-head h2,
+.chronos-home .trend-title,
+.chronos-home .report-card h3,
+.chronos-home .hot-video-link a,
+.chronos-home .trend-title a {
+  color: #141414;
+}
+
+.chronos-home .card-link,
+.chronos-home .trend-rank {
+  color: #1f1f1f;
+}
+
+.chronos-home .report-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (max-width: 1200px) {
+  .chronos-grid-container {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chronos-sidebar {
+    border-top: 1px solid var(--border-color);
+    align-items: flex-start;
+  }
+
+  .chronos-right-feature {
+    align-items: flex-start;
+  }
+
+  .chronos-hero-image-container {
+    width: 100%;
+    height: min(460px, 62vw);
+  }
+
+  .chronos-headline-wrapper,
+  .chronos-article-excerpt {
+    width: 100%;
+    max-width: none;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .chronos-nav-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .chronos-nav-segment {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .chronos-grid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .chronos-main-content {
+    border-right: none;
+    padding: 1.4rem 1.1rem 1.4rem;
+  }
+
+  .chronos-brand-mark,
+  .chronos-date-badge {
+    position: static;
+    margin-bottom: 0.8rem;
+    width: fit-content;
+  }
+
+  .chronos-sidebar {
+    display: none;
+  }
+
+  .chronos-content-block {
+    margin-top: 1rem;
+  }
+}
+
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -168,6 +551,10 @@ code {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 1.2rem;
+}
+
+.hero.hero-no-side {
+  grid-template-columns: 1fr;
 }
 
 .hero-main {

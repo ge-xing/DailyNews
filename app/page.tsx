@@ -34,7 +34,6 @@ type ReportTabConfig = {
   heroKicker: string;
   heroTitle: string;
   heroGlow: string;
-  heroCopy: string;
 };
 
 function normalizeTab(tab?: string): TabKey {
@@ -68,7 +67,6 @@ function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
       heroKicker: "Crypto RSS Feed",
       heroTitle: "币圈日报",
       heroGlow: " Market Brief",
-      heroCopy: "站点优先从 OSS 读取币圈每日 Markdown 报告，自动归档并支持详情页阅读。",
     };
   }
 
@@ -77,7 +75,6 @@ function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
     heroKicker: "Karpathy Curated RSS",
     heroTitle: "AI 日报",
     heroGlow: " Web Archive",
-    heroCopy: "站点优先从 OSS 读取每日 Markdown 报告，自动按日期归档；详情页支持长文阅读与快速跳转。",
   };
 }
 
@@ -97,9 +94,6 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const latest = reports[0];
   const latestDate = latest?.date ?? "--";
-  const latestItems = latest?.itemCount ?? 0;
-  const latestThemes = latest?.themeCount ?? 0;
-  const fetchedAt = trending?.fetchedAt ? new Date(trending.fetchedAt).toLocaleString("zh-CN", { hour12: false }) : "";
 
   const reportTabConfig =
     activeTab === "daily"
@@ -108,7 +102,6 @@ export default async function Home({ searchParams }: HomeProps) {
           heroKicker: "Daily Information",
           heroTitle: "每日资讯",
           heroGlow: " Category Brief",
-          heroCopy: "按分类查看财经资讯日报；每类单独生成并归档，支持快速切换与阅读。",
         }
       : activeReportChannel
         ? getReportTabConfig(activeReportChannel)
@@ -135,213 +128,268 @@ export default async function Home({ searchParams }: HomeProps) {
         ? `?tab=${activeReportChannel}`
         : "";
 
+  const editorialImage =
+    "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2988&auto=format&fit=crop";
+
+  const headlineByTab: Record<TabKey, { top: string; italic: string; bottom: string; upper: string; quote: string }> = {
+    ai: {
+      top: "Observe",
+      italic: "the quiet",
+      bottom: "signals in daily",
+      upper: "AI Intelligence",
+      quote: "深度信息不在噪声中，而在可持续追踪的线索里。",
+    },
+    crypto: {
+      top: "Track",
+      italic: "the subtle",
+      bottom: "momentum behind",
+      upper: "Crypto Markets",
+      quote: "波动表象之下，结构性变化决定下一阶段叙事。",
+    },
+    daily: {
+      top: "Read",
+      italic: "the hidden",
+      bottom: "links across",
+      upper: "Daily Information",
+      quote: "跨分类视角能更快识别宏观到行业的传导关系。",
+    },
+    github: {
+      top: "Discover",
+      italic: "the rising",
+      bottom: "projects from",
+      upper: "Github Trends",
+      quote: "趋势仓库是技术方向变化最前沿的公开信号。",
+    },
+    hot: {
+      top: "Find",
+      italic: "the hottest",
+      bottom: "videos across",
+      upper: "YouTube Search",
+      quote: "热度并非绝对流量，而是流量与时效性的乘积。",
+    },
+  };
+
+  const headline = headlineByTab[activeTab];
+  const now = new Date();
+  const issueLabel = `VOL. ${String(
+    activeTab === "github" ? trending?.items.length || 0 : reports.length || 0,
+  ).padStart(3, "0")} — ${now
+    .toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    .toUpperCase()}`;
+
+  const verticalMetaItems =
+    activeTab === "github"
+      ? [
+          `Trending ${(trending?.items.length || 0).toString().padStart(2, "0")}`,
+          "Search1API Feed 02",
+          "Bilingual Summary 03",
+        ]
+      : activeTab === "hot"
+        ? ["YouTube Discovery 01", "Heat Ranking 02", "Realtime Query 03"]
+        : [
+            `${reportTabConfig?.tabLabel || "Archive"} ${(reports.length || 0).toString().padStart(2, "0")}`,
+            `Latest ${latestDate === "--" ? "N/A" : latestDate} 02`,
+            "Collections & Notes 03",
+          ];
+
   return (
-    <main className="shell">
-      <div className="ambient ambient-a" />
-      <div className="ambient ambient-b" />
-      <div className="container app-layout">
-        <aside className="sidebar">
-          <p className="sidebar-title">内容导航</p>
-          <nav className="tab-list" aria-label="首页分栏">
-            <Link href="/?tab=ai" className={`side-tab ${activeTab === "ai" ? "is-active" : ""}`}>
-              AI日报
-            </Link>
-            <Link href="/?tab=crypto" className={`side-tab ${activeTab === "crypto" ? "is-active" : ""}`}>
-              币圈日报
-            </Link>
-            <Link href="/?tab=daily" className={`side-tab ${activeTab === "daily" ? "is-active" : ""}`}>
-              每日资讯
-            </Link>
-            <Link href="/?tab=github" className={`side-tab ${activeTab === "github" ? "is-active" : ""}`}>
-              Github趋势
-            </Link>
-            <Link href="/?tab=hot" className={`side-tab ${activeTab === "hot" ? "is-active" : ""}`}>
-              发现热点
-            </Link>
-          </nav>
-          <p className="sidebar-tip">通过左侧切换 AI 日报、币圈日报、每日资讯、Github 趋势与发现热点。</p>
+    <main className="chronos-home">
+      <nav className="chronos-nav-bar" aria-label="首页分栏">
+        <Link href="/?tab=ai" className={`chronos-nav-segment ${activeTab === "ai" ? "is-active" : ""}`}>
+          AI日报
+        </Link>
+        <Link href="/?tab=crypto" className={`chronos-nav-segment ${activeTab === "crypto" ? "is-active" : ""}`}>
+          币圈日报
+        </Link>
+        <Link href="/?tab=daily" className={`chronos-nav-segment ${activeTab === "daily" ? "is-active" : ""}`}>
+          每日资讯
+        </Link>
+        <Link href="/?tab=github" className={`chronos-nav-segment ${activeTab === "github" ? "is-active" : ""}`}>
+          Github趋势
+        </Link>
+        <Link href="/?tab=hot" className={`chronos-nav-segment ${activeTab === "hot" ? "is-active" : ""}`}>
+          发现热点
+        </Link>
+      </nav>
+
+      <div className="chronos-grid-container">
+        <section className="chronos-main-content">
+          <div className="chronos-date-badge">{issueLabel}</div>
+
+          <div className="chronos-content-block">
+            {activeTab === "hot" ? (
+              <HotspotYoutubeSearch />
+            ) : activeReportChannel && reportTabConfig ? (
+              <>
+                <section className="hero hero-no-side">
+                  <div className="hero-main">
+                    <p className="hero-kicker">{reportTabConfig.heroKicker}</p>
+                    <h1>
+                      {reportTabConfig.heroTitle}
+                      <span className="hero-glow">{reportTabConfig.heroGlow}</span>
+                    </h1>
+                    <div className="hero-actions">
+                      {latest ? (
+                        <Link className="btn btn-primary" href={`/reports/${latest.slug}${reportLinkQuery}`}>
+                          阅读最新一期
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+
+                {activeTab === "daily" ? (
+                  <section className="category-strip" aria-label="每日资讯分类">
+                    <Link href="/?tab=daily" className={`category-pill ${!selectedDailyCategory ? "is-active" : ""}`}>
+                      全部 ({allReports.length})
+                    </Link>
+                    {DAILY_CATEGORY_ITEMS.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={`/?tab=daily&category=${encodeURIComponent(item.key)}`}
+                        className={`category-pill ${selectedDailyCategory === item.key ? "is-active" : ""}`}
+                      >
+                        {item.label} ({dailyCategoryCounts.get(item.key) || 0})
+                      </Link>
+                    ))}
+                  </section>
+                ) : null}
+
+                <section className="grid-head">
+                  <h2>{reportTabConfig.tabLabel}归档</h2>
+                  <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
+                </section>
+
+                {reports.length === 0 ? (
+                  <section className="empty-card">
+                    <p>当前没有可展示的日报文件。</p>
+                    <p>请在本地生成并上传到 OSS 后刷新页面。</p>
+                  </section>
+                ) : (
+                  <section className="report-grid">
+                    {reports.map((report) => (
+                      <Link key={report.slug} className="report-card" href={`/reports/${report.slug}${reportLinkQuery}`}>
+                        <p className="report-date">{report.date}</p>
+                        <h3>{report.title}</h3>
+                        <p className="report-excerpt">{report.excerpt}</p>
+                        <div className="report-meta">
+                          <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
+                          <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
+                        </div>
+                        <span className="card-link">打开全文</span>
+                      </Link>
+                    ))}
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
+                <section className="hero hero-no-side">
+                  <div className="hero-main">
+                    <p className="hero-kicker">Search1API · Github Trending</p>
+                    <h1>
+                      Github 趋势
+                      <span className="hero-glow"> Daily Snapshot</span>
+                    </h1>
+                    <div className="hero-actions">
+                      <Link className="btn btn-primary" href="/?tab=github">
+                        刷新趋势
+                      </Link>
+                      <code className="cmd">Server-side Fetch</code>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="grid-head">
+                  <h2>热门仓库</h2>
+                  <p>{trending?.items.length ? `共 ${trending.items.length} 条` : "暂无趋势数据"}</p>
+                </section>
+
+                {trending?.warning ? (
+                  <section className="empty-card">
+                    <p>Gemini 翻译部分失败，已展示英文原文。</p>
+                    <p>{trending.warning}</p>
+                  </section>
+                ) : null}
+
+                {trending?.error ? (
+                  <section className="empty-card">
+                    <p>获取 Github 趋势失败。</p>
+                    <p>{trending.error}</p>
+                  </section>
+                ) : trending && trending.items.length > 0 ? (
+                  <section className="trend-list">
+                    {trending.items.map((item) => (
+                      <article key={item.id} className="trend-item">
+                        <div className="trend-head">
+                          <p className="trend-rank">#{item.rank}</p>
+                        </div>
+                        <h3 className="trend-title">
+                          {item.url ? (
+                            <a href={item.url} target="_blank" rel="noreferrer">
+                              {item.title}
+                            </a>
+                          ) : (
+                            item.title
+                          )}
+                        </h3>
+                        <p className="trend-summary-en">{item.summaryEn || "No English summary."}</p>
+                        <p className="trend-summary-zh">{item.summaryZh || "中文翻译暂不可用。"}</p>
+                        <div className="report-meta">
+                          {item.language ? <span>{item.language}</span> : null}
+                          {item.stars ? <span>Stars {item.stars}</span> : null}
+                          {item.forks ? <span>Forks {item.forks}</span> : null}
+                        </div>
+                      </article>
+                    ))}
+                  </section>
+                ) : (
+                  <section className="empty-card">
+                    <p>当前没有可展示的 Github 趋势数据。</p>
+                    <p>请确认已配置 `SEARCH1_API_KEY`，然后刷新本页。</p>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        <aside className="chronos-sidebar">
+          <div className="chronos-right-feature">
+            <div className="chronos-hero-image-container">
+              <img src={editorialImage} alt="Editorial visual" className="chronos-hero-image" />
+            </div>
+
+            <div className="chronos-headline-wrapper">
+              <h1 className="chronos-headline">
+                {headline.top} <span className="italic">{headline.italic}</span>
+                <br />
+                {headline.bottom}
+                <br />
+                <span className="upper">{headline.upper}</span>
+              </h1>
+            </div>
+
+            <div className="chronos-article-excerpt">"{headline.quote}"</div>
+          </div>
+
+          <div className="chronos-vertical-meta">
+            {verticalMetaItems.map((item, idx) => (
+              <span key={`${item}-${idx}`} className="chronos-meta-item">
+                {item}
+              </span>
+            ))}
+          </div>
         </aside>
+      </div>
 
-        <div className="main-panel">
-          {activeTab === "hot" ? (
-            <HotspotYoutubeSearch />
-          ) : activeReportChannel && reportTabConfig ? (
-            <>
-              <section className="hero">
-                <div className="hero-main">
-                  <p className="hero-kicker">{reportTabConfig.heroKicker}</p>
-                  <h1>
-                    {reportTabConfig.heroTitle}
-                    <span className="hero-glow">{reportTabConfig.heroGlow}</span>
-                  </h1>
-                  <p className="hero-copy">{reportTabConfig.heroCopy}</p>
-                  <div className="hero-actions">
-                    {latest ? (
-                      <Link className="btn btn-primary" href={`/reports/${latest.slug}${reportLinkQuery}`}>
-                        阅读最新一期
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="hero-side">
-                  <p className="side-title">今日快照</p>
-                  <div className="hero-metric">
-                    <span>最新日期</span>
-                    <strong>{latestDate}</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>更新条数</span>
-                    <strong>{latestItems > 0 ? `${latestItems} 条` : "--"}</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>核心主题</span>
-                    <strong>{latestThemes > 0 ? `${latestThemes} 个` : "--"}</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>总期数</span>
-                    <strong>{reports.length}</strong>
-                  </div>
-                </div>
-              </section>
-
-              {activeTab === "daily" ? (
-                <section className="category-strip" aria-label="每日资讯分类">
-                  <Link href="/?tab=daily" className={`category-pill ${!selectedDailyCategory ? "is-active" : ""}`}>
-                    全部 ({allReports.length})
-                  </Link>
-                  {DAILY_CATEGORY_ITEMS.map((item) => (
-                    <Link
-                      key={item.key}
-                      href={`/?tab=daily&category=${encodeURIComponent(item.key)}`}
-                      className={`category-pill ${selectedDailyCategory === item.key ? "is-active" : ""}`}
-                    >
-                      {item.label} ({dailyCategoryCounts.get(item.key) || 0})
-                    </Link>
-                  ))}
-                </section>
-              ) : null}
-
-              <section className="grid-head">
-                <h2>{reportTabConfig.tabLabel}归档</h2>
-                <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
-              </section>
-
-              {reports.length === 0 ? (
-                <section className="empty-card">
-                  <p>当前没有可展示的日报文件。</p>
-                  <p>请在本地生成并上传到 OSS 后刷新页面。</p>
-                </section>
-              ) : (
-                <section className="report-grid">
-                  {reports.map((report) => (
-                    <article key={report.slug} className="report-card">
-                      <p className="report-date">{report.date}</p>
-                      <h3>{report.title}</h3>
-                      <p className="report-excerpt">{report.excerpt}</p>
-                      <div className="report-meta">
-                        <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
-                        <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
-                      </div>
-                      <Link className="card-link" href={`/reports/${report.slug}${reportLinkQuery}`}>
-                        打开全文
-                      </Link>
-                    </article>
-                  ))}
-                </section>
-              )}
-            </>
-          ) : (
-            <>
-              <section className="hero">
-                <div className="hero-main">
-                  <p className="hero-kicker">Search1API · Github Trending</p>
-                  <h1>
-                    Github 趋势
-                    <span className="hero-glow"> Daily Snapshot</span>
-                  </h1>
-                  <p className="hero-copy">数据由服务端实时抓取并按条目展示热门仓库，同时使用 Gemini 自动翻译英文简介。</p>
-                  <div className="hero-actions">
-                    <Link className="btn btn-primary" href="/?tab=github">
-                      刷新趋势
-                    </Link>
-                    <code className="cmd">Server-side Fetch</code>
-                  </div>
-                </div>
-
-                <div className="hero-side">
-                  <p className="side-title">抓取状态</p>
-                  <div className="hero-metric">
-                    <span>抓取时间</span>
-                    <strong>{fetchedAt || "--"}</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>返回条数</span>
-                    <strong>{trending?.items.length ?? 0}</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>数据源</span>
-                    <strong>Search1API</strong>
-                  </div>
-                  <div className="hero-metric">
-                    <span>翻译状态</span>
-                    <strong>{trending?.warning ? "部分失败" : "正常"}</strong>
-                  </div>
-                </div>
-              </section>
-
-              <section className="grid-head">
-                <h2>热门仓库</h2>
-                <p>{trending?.items.length ? `共 ${trending.items.length} 条` : "暂无趋势数据"}</p>
-              </section>
-
-              {trending?.warning ? (
-                <section className="empty-card">
-                  <p>Gemini 翻译部分失败，已展示英文原文。</p>
-                  <p>{trending.warning}</p>
-                </section>
-              ) : null}
-
-              {trending?.error ? (
-                <section className="empty-card">
-                  <p>获取 Github 趋势失败。</p>
-                  <p>{trending.error}</p>
-                </section>
-              ) : trending && trending.items.length > 0 ? (
-                <section className="trend-list">
-                  {trending.items.map((item) => (
-                    <article key={item.id} className="trend-item">
-                      <div className="trend-head">
-                        <p className="trend-rank">#{item.rank}</p>
-                      </div>
-                      <h3 className="trend-title">
-                        {item.url ? (
-                          <a href={item.url} target="_blank" rel="noreferrer">
-                            {item.title}
-                          </a>
-                        ) : (
-                          item.title
-                        )}
-                      </h3>
-                      <p className="trend-summary-en">{item.summaryEn || "No English summary."}</p>
-                      <p className="trend-summary-zh">{item.summaryZh || "中文翻译暂不可用。"}</p>
-                      <div className="report-meta">
-                        {item.language ? <span>{item.language}</span> : null}
-                        {item.stars ? <span>Stars {item.stars}</span> : null}
-                        {item.forks ? <span>Forks {item.forks}</span> : null}
-                      </div>
-                    </article>
-                  ))}
-                </section>
-              ) : (
-                <section className="empty-card">
-                  <p>当前没有可展示的 Github 趋势数据。</p>
-                  <p>请确认已配置 `SEARCH1_API_KEY`，然后刷新本页。</p>
-                </section>
-              )}
-            </>
-          )}
-        </div>
+      <div className="chronos-footer-bar">
+        <Link href="/?tab=ai" className="chronos-footer-segment">
+          Weekly Digest
+        </Link>
+        <Link href="/?tab=daily" className="chronos-footer-segment">
+          Archives & Collections
+        </Link>
       </div>
     </main>
   );

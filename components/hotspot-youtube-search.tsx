@@ -97,14 +97,13 @@ export function HotspotYoutubeSearch() {
 
   return (
     <>
-      <section className="hero">
+      <section className="hero hero-no-side">
         <div className="hero-main">
           <p className="hero-kicker">Discover Hot Topics · Youtube</p>
           <h1>
             发现热点
             <span className="hero-glow"> Youtube</span>
           </h1>
-          <p className="hero-copy">输入关键词后，后端会检索视频并基于发布时间与播放量计算热度排序。</p>
           <div className="hot-subtabs" aria-label="发现热点子栏目">
             <span className="category-pill is-active">Youtube</span>
           </div>
@@ -122,26 +121,6 @@ export function HotspotYoutubeSearch() {
             </button>
           </form>
           {error ? <p className="hot-status hot-error">{error}</p> : null}
-        </div>
-
-        <div className="hero-side">
-          <p className="side-title">搜索状态</p>
-          <div className="hero-metric">
-            <span>默认条数</span>
-            <strong>{DEFAULT_VIDEO_COUNT}</strong>
-          </div>
-          <div className="hero-metric">
-            <span>返回结果</span>
-            <strong>{result ? result.returned_count : "--"}</strong>
-          </div>
-          <div className="hero-metric">
-            <span>抓取页数</span>
-            <strong>{result ? result.fetched_pages : "--"}</strong>
-          </div>
-          <div className="hero-metric">
-            <span>更新时间</span>
-            <strong>{result ? formatTime(result.generated_at) : "--"}</strong>
-          </div>
         </div>
       </section>
 
