@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllReports, type ReportChannel } from "@/lib/reports";
 import { getGithubTrending } from "@/lib/trending";
 import { HotspotYoutubeSearch } from "@/components/hotspot-youtube-search";
+import { SidebarTabs } from "@/components/sidebar-tabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,11 +30,32 @@ const DAILY_CATEGORY_ITEMS: Array<{ key: DailyCategoryKey; label: string; tokens
   { key: "crypto_digital_assets", label: "加密资产", tokens: ["加密资产", "crypto_digital_assets"] },
 ];
 
-type ReportTabConfig = {
-  tabLabel: string;
-  heroKicker: string;
-  heroTitle: string;
-  heroGlow: string;
+const HERO_COPY: Record<TabKey, { kicker: string; title: string; subtitle: string }> = {
+  ai: {
+    kicker: "Karpathy Curated RSS",
+    title: "Your AI Intelligence Hub.",
+    subtitle: "聚合高质量 AI 来源，形成可连续追踪的日报与主题线索。",
+  },
+  crypto: {
+    kicker: "Crypto RSS Feed",
+    title: "Your Crypto Market Desk.",
+    subtitle: "覆盖行情脉冲、叙事变化与关键项目动态，保持同一视角持续观察。",
+  },
+  daily: {
+    kicker: "Daily Information",
+    title: "Your Daily Macro Console.",
+    subtitle: "把宏观、行业与科技商业放在同一界面，快速建立全局认知。",
+  },
+  github: {
+    kicker: "Search1API · Github Trending",
+    title: "Your Github Trend Radar.",
+    subtitle: "实时捕捉仓库热度变化，并提供双语摘要便于快速判断价值。",
+  },
+  hot: {
+    kicker: "Youtube Hotspot Search",
+    title: "Your Realtime Video Signals.",
+    subtitle: "关键词驱动热点检索，定位高时效内容与热度变化。",
+  },
 };
 
 function normalizeTab(tab?: string): TabKey {
@@ -60,24 +82,6 @@ function resolveDailyCategory(report: { title: string; fileName: string }): Dail
   return undefined;
 }
 
-function getReportTabConfig(channel: ReportChannel): ReportTabConfig {
-  if (channel === "crypto") {
-    return {
-      tabLabel: "币圈日报",
-      heroKicker: "Crypto RSS Feed",
-      heroTitle: "币圈日报",
-      heroGlow: " Market Brief",
-    };
-  }
-
-  return {
-    tabLabel: "AI日报",
-    heroKicker: "Karpathy Curated RSS",
-    heroTitle: "AI 日报",
-    heroGlow: " Web Archive",
-  };
-}
-
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
@@ -93,19 +97,6 @@ export default async function Home({ searchParams }: HomeProps) {
   const trending = activeTab === "github" ? await getGithubTrending(20) : null;
 
   const latest = reports[0];
-  const latestDate = latest?.date ?? "--";
-
-  const reportTabConfig =
-    activeTab === "daily"
-      ? {
-          tabLabel: "每日资讯",
-          heroKicker: "Daily Information",
-          heroTitle: "每日资讯",
-          heroGlow: " Category Brief",
-        }
-      : activeReportChannel
-        ? getReportTabConfig(activeReportChannel)
-        : null;
 
   const dailyCategoryCounts = new Map<DailyCategoryKey, number>();
   for (const item of DAILY_CATEGORY_ITEMS) {
@@ -128,180 +119,78 @@ export default async function Home({ searchParams }: HomeProps) {
         ? `?tab=${activeReportChannel}`
         : "";
 
-  const editorialImage =
-    "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2988&auto=format&fit=crop";
+  const featuredReports = reports.slice(0, 2);
+  const hero = HERO_COPY[activeTab];
 
-  const headlineByTab: Record<TabKey, { top: string; italic: string; bottom: string; upper: string; quote: string }> = {
-    ai: {
-      top: "Observe",
-      italic: "the quiet",
-      bottom: "signals in daily",
-      upper: "AI Intelligence",
-      quote: "深度信息不在噪声中，而在可持续追踪的线索里。",
-    },
-    crypto: {
-      top: "Track",
-      italic: "the subtle",
-      bottom: "momentum behind",
-      upper: "Crypto Markets",
-      quote: "波动表象之下，结构性变化决定下一阶段叙事。",
-    },
-    daily: {
-      top: "Read",
-      italic: "the hidden",
-      bottom: "links across",
-      upper: "Daily Information",
-      quote: "跨分类视角能更快识别宏观到行业的传导关系。",
-    },
-    github: {
-      top: "Discover",
-      italic: "the rising",
-      bottom: "projects from",
-      upper: "Github Trends",
-      quote: "趋势仓库是技术方向变化最前沿的公开信号。",
-    },
-    hot: {
-      top: "Find",
-      italic: "the hottest",
-      bottom: "videos across",
-      upper: "YouTube Search",
-      quote: "热度并非绝对流量，而是流量与时效性的乘积。",
-    },
-  };
-
-  const headline = headlineByTab[activeTab];
-  const now = new Date();
-  const issueLabel = `VOL. ${String(
-    activeTab === "github" ? trending?.items.length || 0 : reports.length || 0,
-  ).padStart(3, "0")} — ${now
-    .toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    .toUpperCase()}`;
-
-  const verticalMetaItems =
+  const issueCount =
     activeTab === "github"
-      ? [
-          `Trending ${(trending?.items.length || 0).toString().padStart(2, "0")}`,
-          "Search1API Feed 02",
-          "Bilingual Summary 03",
-        ]
+      ? trending?.items.length || 0
       : activeTab === "hot"
-        ? ["YouTube Discovery 01", "Heat Ranking 02", "Realtime Query 03"]
-        : [
-            `${reportTabConfig?.tabLabel || "Archive"} ${(reports.length || 0).toString().padStart(2, "0")}`,
-            `Latest ${latestDate === "--" ? "N/A" : latestDate} 02`,
-            "Collections & Notes 03",
-          ];
+        ? 30
+        : reports.length || allReports.length || 0;
+  const issueLabel = `VOL. ${String(issueCount).padStart(3, "0")}`;
 
   return (
-    <main className="chronos-home">
-      <nav className="chronos-nav-bar" aria-label="首页分栏">
-        <Link href="/?tab=ai" className={`chronos-nav-segment ${activeTab === "ai" ? "is-active" : ""}`}>
-          AI日报
-        </Link>
-        <Link href="/?tab=crypto" className={`chronos-nav-segment ${activeTab === "crypto" ? "is-active" : ""}`}>
-          币圈日报
-        </Link>
-        <Link href="/?tab=daily" className={`chronos-nav-segment ${activeTab === "daily" ? "is-active" : ""}`}>
-          每日资讯
-        </Link>
-        <Link href="/?tab=github" className={`chronos-nav-segment ${activeTab === "github" ? "is-active" : ""}`}>
-          Github趋势
-        </Link>
-        <Link href="/?tab=hot" className={`chronos-nav-segment ${activeTab === "hot" ? "is-active" : ""}`}>
-          发现热点
-        </Link>
-      </nav>
+    <main className="neo-home">
+      <div className="neo-shell">
+        <aside className="neo-sidebar">
+          <p className="neo-side-section">Explore</p>
+          <SidebarTabs activeTab={activeTab} />
 
-      <div className="chronos-grid-container">
-        <section className="chronos-main-content">
-          <div className="chronos-date-badge">{issueLabel}</div>
+          <p className="neo-side-section">Connect</p>
+          <div className="neo-connect-list">
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="neo-connect-link">
+              Github
+            </a>
+            <a href="https://www.youtube.com" target="_blank" rel="noreferrer" className="neo-connect-link">
+              YouTube
+            </a>
+          </div>
+        </aside>
 
-          <div className="chronos-content-block">
+        <section className="neo-content">
+          <header className="neo-hero">
+            <p className="neo-kicker">{hero.kicker}</p>
+            <h1>{hero.title}</h1>
+            <p className="neo-subtitle">{hero.subtitle}</p>
+            <div className="neo-hero-actions">
+              {activeReportChannel && latest ? (
+                <Link className="neo-btn is-primary" href={`/reports/${latest.slug}${reportLinkQuery}`}>
+                  阅读最新一期
+                </Link>
+              ) : (
+                <Link className="neo-btn is-primary" href={activeTab === "github" ? "/?tab=github" : "/?tab=ai"}>
+                  {activeTab === "github" ? "刷新趋势" : "返回 AI 日报"}
+                </Link>
+              )}
+              <span className="neo-pill">{issueLabel}</span>
+            </div>
+          </header>
+
+          {activeTab === "daily" ? (
+            <section className="category-strip" aria-label="每日资讯分类">
+              <Link href="/?tab=daily" className={`category-pill ${!selectedDailyCategory ? "is-active" : ""}`}>
+                全部 ({allReports.length})
+              </Link>
+              {DAILY_CATEGORY_ITEMS.map((item) => (
+                <Link
+                  key={item.key}
+                  href={`/?tab=daily&category=${encodeURIComponent(item.key)}`}
+                  className={`category-pill ${selectedDailyCategory === item.key ? "is-active" : ""}`}
+                >
+                  {item.label} ({dailyCategoryCounts.get(item.key) || 0})
+                </Link>
+              ))}
+            </section>
+          ) : null}
+
+          <div className="neo-content-body">
             {activeTab === "hot" ? (
               <HotspotYoutubeSearch />
-            ) : activeReportChannel && reportTabConfig ? (
+            ) : activeTab === "github" ? (
               <>
-                <section className="hero hero-no-side">
-                  <div className="hero-main">
-                    <p className="hero-kicker">{reportTabConfig.heroKicker}</p>
-                    <h1>
-                      {reportTabConfig.heroTitle}
-                      <span className="hero-glow">{reportTabConfig.heroGlow}</span>
-                    </h1>
-                    <div className="hero-actions">
-                      {latest ? (
-                        <Link className="btn btn-primary" href={`/reports/${latest.slug}${reportLinkQuery}`}>
-                          阅读最新一期
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                </section>
-
-                {activeTab === "daily" ? (
-                  <section className="category-strip" aria-label="每日资讯分类">
-                    <Link href="/?tab=daily" className={`category-pill ${!selectedDailyCategory ? "is-active" : ""}`}>
-                      全部 ({allReports.length})
-                    </Link>
-                    {DAILY_CATEGORY_ITEMS.map((item) => (
-                      <Link
-                        key={item.key}
-                        href={`/?tab=daily&category=${encodeURIComponent(item.key)}`}
-                        className={`category-pill ${selectedDailyCategory === item.key ? "is-active" : ""}`}
-                      >
-                        {item.label} ({dailyCategoryCounts.get(item.key) || 0})
-                      </Link>
-                    ))}
-                  </section>
-                ) : null}
-
                 <section className="grid-head">
-                  <h2>{reportTabConfig.tabLabel}归档</h2>
-                  <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
-                </section>
-
-                {reports.length === 0 ? (
-                  <section className="empty-card">
-                    <p>当前没有可展示的日报文件。</p>
-                    <p>请在本地生成并上传到 OSS 后刷新页面。</p>
-                  </section>
-                ) : (
-                  <section className="report-grid">
-                    {reports.map((report) => (
-                      <Link key={report.slug} className="report-card" href={`/reports/${report.slug}${reportLinkQuery}`}>
-                        <p className="report-date">{report.date}</p>
-                        <h3>{report.title}</h3>
-                        <p className="report-excerpt">{report.excerpt}</p>
-                        <div className="report-meta">
-                          <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
-                          <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
-                        </div>
-                        <span className="card-link">打开全文</span>
-                      </Link>
-                    ))}
-                  </section>
-                )}
-              </>
-            ) : (
-              <>
-                <section className="hero hero-no-side">
-                  <div className="hero-main">
-                    <p className="hero-kicker">Search1API · Github Trending</p>
-                    <h1>
-                      Github 趋势
-                      <span className="hero-glow"> Daily Snapshot</span>
-                    </h1>
-                    <div className="hero-actions">
-                      <Link className="btn btn-primary" href="/?tab=github">
-                        刷新趋势
-                      </Link>
-                      <code className="cmd">Server-side Fetch</code>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="grid-head">
-                  <h2>热门仓库</h2>
+                  <h2>Trending Repositories</h2>
                   <p>{trending?.items.length ? `共 ${trending.items.length} 条` : "暂无趋势数据"}</p>
                 </section>
 
@@ -350,46 +239,62 @@ export default async function Home({ searchParams }: HomeProps) {
                   </section>
                 )}
               </>
+            ) : (
+              <>
+                <section className="neo-section-head">
+                  <h2>New Drops</h2>
+                </section>
+
+                {featuredReports.length > 0 ? (
+                  <section className="neo-drop-grid">
+                    {featuredReports.map((report) => (
+                      <Link key={report.slug} className="neo-drop-card" href={`/reports/${report.slug}${reportLinkQuery}`}>
+                        <div className="neo-drop-media">
+                          <span>{activeTab === "crypto" ? "CRYPTO" : activeTab === "daily" ? "DAILY" : "AI"}</span>
+                        </div>
+                        <div className="neo-drop-body">
+                          <h3>{report.title}</h3>
+                          <p>{report.excerpt}</p>
+                          <div className="neo-drop-meta">
+                            <span>{report.date}</span>
+                            <span>{report.itemCount > 0 ? `${report.itemCount} 条` : "待统计"}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </section>
+                ) : null}
+
+                <section className="grid-head">
+                  <h2>Report Archive</h2>
+                  <p>{reports.length > 0 ? `共 ${reports.length} 期` : "暂无日报，请点击按钮生成。"}</p>
+                </section>
+
+                {reports.length === 0 ? (
+                  <section className="empty-card">
+                    <p>当前没有可展示的日报文件。</p>
+                    <p>请在本地生成并上传到 OSS 后刷新页面。</p>
+                  </section>
+                ) : (
+                  <section className="report-grid">
+                    {reports.map((report) => (
+                      <Link key={report.slug} className="report-card" href={`/reports/${report.slug}${reportLinkQuery}`}>
+                        <p className="report-date">{report.date}</p>
+                        <h3>{report.title}</h3>
+                        <p className="report-excerpt">{report.excerpt}</p>
+                        <div className="report-meta">
+                          <span>{report.itemCount > 0 ? `${report.itemCount} 条更新` : "待统计"}</span>
+                          <span>{report.themeCount > 0 ? `${report.themeCount} 个主题` : "待统计"}</span>
+                        </div>
+                        <span className="card-link">打开全文</span>
+                      </Link>
+                    ))}
+                  </section>
+                )}
+              </>
             )}
           </div>
         </section>
-
-        <aside className="chronos-sidebar">
-          <div className="chronos-right-feature">
-            <div className="chronos-hero-image-container">
-              <img src={editorialImage} alt="Editorial visual" className="chronos-hero-image" />
-            </div>
-
-            <div className="chronos-headline-wrapper">
-              <h1 className="chronos-headline">
-                {headline.top} <span className="italic">{headline.italic}</span>
-                <br />
-                {headline.bottom}
-                <br />
-                <span className="upper">{headline.upper}</span>
-              </h1>
-            </div>
-
-            <div className="chronos-article-excerpt">"{headline.quote}"</div>
-          </div>
-
-          <div className="chronos-vertical-meta">
-            {verticalMetaItems.map((item, idx) => (
-              <span key={`${item}-${idx}`} className="chronos-meta-item">
-                {item}
-              </span>
-            ))}
-          </div>
-        </aside>
-      </div>
-
-      <div className="chronos-footer-bar">
-        <Link href="/?tab=ai" className="chronos-footer-segment">
-          Weekly Digest
-        </Link>
-        <Link href="/?tab=daily" className="chronos-footer-segment">
-          Archives & Collections
-        </Link>
       </div>
     </main>
   );
